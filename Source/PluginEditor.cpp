@@ -41,7 +41,7 @@ ExtasisMarimbaAudioProcessorEditor::ExtasisMarimbaAudioProcessorEditor(ExtasisMa
         processorRef.triggerAuditionNote(midiNote, vel);
 
         float h = 0.65f;
-        float d = 0.52f;
+        float d = 0.55f;
         auto itH = controls.find("hardness");
         auto itD = controls.find("decay");
         if (itH != controls.end() && itH->second.slider != nullptr)
@@ -61,26 +61,26 @@ ExtasisMarimbaAudioProcessorEditor::ExtasisMarimbaAudioProcessorEditor(ExtasisMa
     };
     addAndMakeVisible(triggerButton);
 
-    // 4. Create all Rotary Controls
-    // Mallet Section
+    // 4. Create all Rotary Controls across 4 Sections
+    // Section 1: Mallet & Attack
     createKnob("hardness", "HARDNESS", "%");
+    createKnob("noise", "RUBBER NOISE", "%");
     createKnob("click", "CLICK / SNAP", "%");
     createKnob("attack", "ATTACK", "ms");
 
-    // Modal Resonator Section
+    // Section 2: Wood & Modal FM
     createKnob("decay", "BAR DECAY", "%");
     createKnob("material", "MATERIAL", "%");
     createKnob("overtones", "OVERTONES", "%");
-    createKnob("pipe", "PIPE BODY", "%");
+    createKnob("organic", "ORGANIC DRIFT", "%");
 
-    // SEM Filter Section
-    createKnob("cutoff", "CUTOFF", "Hz");
-    createKnob("resonance", "RESO", "%");
-    createKnob("filterEnv", "ENV AMT", "%");
+    // Section 3: Resonator & Buzz (La Cachimba)
+    createKnob("tube", "TUBE CAVITY", "%");
+    createKnob("buzz", "CACHIMBA BUZZ", "%");
+    createKnob("buzzVel", "BUZZ DYNAMICS", "%");
+    createKnob("cutoff", "SEM FILTER", "Hz");
 
-    // Envelope & FX Section
-    createKnob("envDecay", "ENV DECAY", "ms");
-    createKnob("release", "RELEASE", "ms");
+    // Section 4: Master & FX
     createKnob("spread", "SPREAD", "%");
     createKnob("drive", "WARM DRIVE", "%");
     createKnob("ambience", "AMBIENCE", "%");
@@ -120,8 +120,21 @@ void ExtasisMarimbaAudioProcessorEditor::sliderValueChanged(juce::Slider* slider
     {
         if (pair.second.slider.get() == slider)
         {
-            if (pair.second.label != nullptr)
-                display.setParameterReadout(pair.second.label->getText(), slider->getTextFromValue(slider->getValue()));
+            auto paramId = pair.first;
+            auto val = slider->getValue();
+
+            if (paramId == "noise")
+                display.setParameterReadout("RUBBER MALLET NOISE", juce::String((int)(val * 100)) + "% BANDPASS 3.5kHz");
+            else if (paramId == "buzz")
+                display.setParameterReadout("CACHIMBA MEMBRANE BUZZ", juce::String((int)(val * 100)) + "% TRADITIONAL CHIAPAS");
+            else if (paramId == "buzzVel")
+                display.setParameterReadout("BUZZ DYNAMICS", juce::String((int)(val * 100)) + "% VELOCITY RESPONSE");
+            else if (paramId == "organic")
+                display.setParameterReadout("MARIMBA DE PUEBLO", juce::String((int)(val * 100)) + "% ARTISANAL IMPERFECTION");
+            else if (paramId == "tube")
+                display.setParameterReadout("RESONATOR TUBE", juce::String((int)(val * 100)) + "% ACOUSTIC BEATING");
+            else if (pair.second.label != nullptr)
+                display.setParameterReadout(pair.second.label->getText(), slider->getTextFromValue(val));
             
             auto itH = controls.find("hardness");
             auto itD = controls.find("decay");
@@ -173,13 +186,13 @@ void ExtasisMarimbaAudioProcessorEditor::paint(juce::Graphics& g)
 
     g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 10.5f, juce::Font::plain));
     g.setColour(juce::Colour(0xff8e96a4));
-    g.drawText("- MODAL PHYSICAL SYNTHESIZER", 215, 0, 320, 44, juce::Justification::centredLeft);
+    g.drawText("- MEXICAN PHYSICAL-FM SYNTHESIZER", 215, 0, 360, 44, juce::Justification::centredLeft);
 
     // Amber horizontal strip
     g.setColour(ExtasisGUI::MarimbaLookAndFeel::getAmberGold());
     g.fillRect(20, 42, getWidth() - 40, 2);
 
-    // 3. Modular Sections
+    // 3. Modular Sections Framing
     auto drawSectionBox = [&g](juce::Rectangle<float> r, const juce::String& title) {
         g.setColour(juce::Colour(0xff1b1e22));
         g.fillRoundedRectangle(r, 5.0f);
@@ -196,10 +209,10 @@ void ExtasisMarimbaAudioProcessorEditor::paint(juce::Graphics& g)
     };
 
     // Bottom 4 Modular Sections
-    drawSectionBox(juce::Rectangle<float>(20, 230, 195, 275), "1. MALLET & STRIKE");
-    drawSectionBox(juce::Rectangle<float>(225, 230, 255, 275), "2. MODAL RESONATOR");
-    drawSectionBox(juce::Rectangle<float>(490, 230, 195, 275), "3. SEM FILTER");
-    drawSectionBox(juce::Rectangle<float>(695, 230, 205, 275), "4. MASTER & FX");
+    drawSectionBox(juce::Rectangle<float>(20, 230, 210, 275), "1. MALLET & ATTACK");
+    drawSectionBox(juce::Rectangle<float>(240, 230, 210, 275), "2. WOOD & MODAL FM");
+    drawSectionBox(juce::Rectangle<float>(460, 230, 220, 275), "3. RESONATOR & BUZZ");
+    drawSectionBox(juce::Rectangle<float>(690, 230, 210, 275), "4. MASTER & FX");
 }
 
 void ExtasisMarimbaAudioProcessorEditor::resized()
@@ -216,8 +229,8 @@ void ExtasisMarimbaAudioProcessorEditor::resized()
     // Row 2: Trigger Pad with Logo
     triggerButton.setBounds(606, 88, 294, 132);
 
-    // Knobs Layout in Bottom Sections (y=230, h=275)
-    auto placeKnob = [this](const juce::String& id, int x, int y, int w = 74, int h = 88) {
+    // Knobs Layout inside the 4 sections (2x2 grid per section)
+    auto placeKnob = [this](const juce::String& id, int x, int y, int w = 82, int h = 88) {
         if (controls.find(id) != controls.end())
         {
             controls[id].slider->setBounds(x, y + 16, w, h - 16);
@@ -225,27 +238,27 @@ void ExtasisMarimbaAudioProcessorEditor::resized()
         }
     };
 
-    // Section 1: Mallet & Strike (x=20)
-    placeKnob("hardness", 32, 265, 74, 88);
-    placeKnob("click", 120, 265, 74, 88);
-    placeKnob("attack", 76, 375, 74, 88);
+    // Section 1: Mallet & Attack (x=20)
+    placeKnob("hardness", 30, 260, 84, 88);
+    placeKnob("noise", 130, 260, 84, 88);
+    placeKnob("click", 30, 375, 84, 88);
+    placeKnob("attack", 130, 375, 84, 88);
 
-    // Section 2: Modal Resonator (x=225)
-    placeKnob("decay", 240, 265, 74, 88);
-    placeKnob("material", 330, 265, 74, 88);
-    placeKnob("overtones", 240, 375, 74, 88);
-    placeKnob("pipe", 330, 375, 74, 88);
+    // Section 2: Wood & Modal FM (x=240)
+    placeKnob("decay", 250, 260, 84, 88);
+    placeKnob("material", 350, 260, 84, 88);
+    placeKnob("overtones", 250, 375, 84, 88);
+    placeKnob("organic", 350, 375, 84, 88);
 
-    // Section 3: SEM Filter (x=490)
-    placeKnob("cutoff", 502, 265, 74, 88);
-    placeKnob("resonance", 592, 265, 74, 88);
-    placeKnob("filterEnv", 547, 375, 74, 88);
+    // Section 3: Resonator & Buzz / La Cachimba (x=460)
+    placeKnob("tube", 472, 260, 84, 88);
+    placeKnob("buzz", 578, 260, 84, 88);
+    placeKnob("buzzVel", 472, 375, 84, 88);
+    placeKnob("cutoff", 578, 375, 84, 88);
 
-    // Section 4: Master & FX (x=695)
-    placeKnob("envDecay", 708, 260, 68, 80);
-    placeKnob("release", 790, 260, 68, 80);
-    placeKnob("spread", 708, 340, 68, 80);
-    placeKnob("drive", 790, 340, 68, 80);
-    placeKnob("ambience", 708, 420, 68, 80);
-    placeKnob("volume", 790, 420, 68, 80);
+    // Section 4: Master & FX (x=690)
+    placeKnob("spread", 702, 260, 84, 88);
+    placeKnob("drive", 802, 260, 84, 88);
+    placeKnob("ambience", 702, 375, 84, 88);
+    placeKnob("volume", 802, 375, 84, 88);
 }

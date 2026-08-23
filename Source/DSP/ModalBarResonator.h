@@ -39,7 +39,6 @@ struct ModalBand
         a2 = -r * r;
         
         // Impulse response gain normalization
-        // For an impulse excitation of amplitude 1.0, this yields clear, rich acoustic body output
         gain = amplitude * 1.8f;
     }
 
@@ -77,25 +76,30 @@ public:
             mode.reset();
         }
         pipeResonator.reset();
+        tubeBeatingResonator.reset();
     }
 
-    void update(float fundamentalFreq, float decayParam, float materialParam, float overtoneMix, float pipeAmount)
+    void update(float fundamentalFreq, float decayParam, float materialParam, float overtoneMix, float tubeAmount, int midiNote = 60)
     {
+        // 1. Key-dependent inharmonic ratio scaling (3.15 in deep bass to 3.60 in high treble)
+        float noteNorm = std::max(0.0f, std::min(1.0f, (static_cast<float>(midiNote) - 24.0f) / 72.0f));
+        float secondModeBaseRatio = 3.15f + noteNorm * 0.45f; // 3.15 -> 3.60
+
         // Decay time: 0.15s to 4.5s
         float baseDecay = 0.15f + decayParam * decayParam * 4.2f;
 
         // Material interpolation:
-        // 0.0 = Deep Wooden Marimba (ratios 1.0, 4.0, 9.2, 16.0)
-        // 0.5 = Balafon / Kalimba (ratios 1.0, 3.85, 8.7, 14.5)
-        // 1.0 = Glass / Vibraphone (ratios 1.0, 2.76, 5.4, 8.93)
+        // 0.0 = Traditional Wooden Hormiguillo Marimba
+        // 0.5 = Balafon / African Rosewood
+        // 1.0 = Glass / Vibraphone
         float mat = std::max(0.0f, std::min(1.0f, materialParam));
         
         std::array<float, NUM_MODES> modeRatios;
         modeRatios[0] = 1.0f;
-        modeRatios[1] = 4.0f * (1.0f - mat) + 2.76f * mat;
-        modeRatios[2] = 9.2f * (1.0f - mat) + 5.40f * mat;
-        modeRatios[3] = 16.0f * (1.0f - mat) + 8.93f * mat;
-        modeRatios[4] = 24.5f * (1.0f - mat) + 13.34f * mat;
+        modeRatios[1] = secondModeBaseRatio * (1.0f - mat) + 2.76f * mat;
+        modeRatios[2] = (secondModeBaseRatio * 2.3f) * (1.0f - mat) + 5.40f * mat;
+        modeRatios[3] = (secondModeBaseRatio * 4.0f) * (1.0f - mat) + 8.93f * mat;
+        modeRatios[4] = (secondModeBaseRatio * 6.2f) * (1.0f - mat) + 13.34f * mat;
 
         // Relative modal amplitudes
         std::array<float, NUM_MODES> modeGains;
@@ -105,7 +109,7 @@ public:
         modeGains[3] = 0.12f * overtoneMix * (1.0f + mat * 0.8f);
         modeGains[4] = 0.05f * overtoneMix * (1.0f + mat * 1.0f);
 
-        // Frequency-dependent damping: higher modes decay much faster in wood
+        // Frequency-dependent damping (higher modes decay much faster in wood)
         for (int i = 0; i < NUM_MODES; ++i)
         {
             float modeFreq = fundamentalFreq * modeRatios[i];
@@ -115,9 +119,13 @@ public:
             modes[i].setCoefficients(modeFreq, modeDecay, modeGains[i], currentSampleRate);
         }
 
-        // Resonator Pipe Body (Acoustic cavity under the bar tuned to fundamental f0)
-        float pipeDecay = baseDecay * 1.25f;
-        pipeResonator.setCoefficients(fundamentalFreq, pipeDecay, pipeAmount * 0.75f, currentSampleRate);
+        // 2. Resonator Tube Cavity 1 (Acoustic air column under the bar)
+        float tubeDecay = baseDecay * 1.35f;
+        pipeResonator.setCoefficients(fundamentalFreq, tubeDecay, tubeAmount * 0.85f, currentSampleRate);
+
+        // 3. Resonator Tube Cavity 2 (Micro-detuned acoustic beating for DOOO~WONNNG air breathing)
+        float detuneHz = (midiNote > 60) ? 5.5f : 3.2f;
+        tubeBeatingResonator.setCoefficients(fundamentalFreq + detuneHz, tubeDecay * 0.9f, tubeAmount * 0.45f, currentSampleRate);
     }
 
     float process(float exciterSample)
@@ -128,10 +136,11 @@ public:
             sum += mode.process(exciterSample);
         }
 
-        // Add acoustic body pipe resonance
-        sum += pipeResonator.process(exciterSample + sum * 0.15f);
+        // Add acoustic body tube resonances
+        float tubeOut = pipeResonator.process(exciterSample + sum * 0.2f)
+                      + tubeBeatingResonator.process(exciterSample + sum * 0.15f);
 
-        return sum;
+        return sum + tubeOut;
     }
 
     bool hasEnergy() const
@@ -141,13 +150,14 @@ public:
             if (mode.hasEnergy())
                 return true;
         }
-        return pipeResonator.hasEnergy();
+        return pipeResonator.hasEnergy() || tubeBeatingResonator.hasEnergy();
     }
 
 private:
     double currentSampleRate = 44100.0;
     std::array<ModalBand, NUM_MODES> modes;
     ModalBand pipeResonator;
+    ModalBand tubeBeatingResonator;
 };
 
 } // namespace ExtasisDSP

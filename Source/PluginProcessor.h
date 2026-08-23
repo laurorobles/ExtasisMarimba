@@ -65,11 +65,14 @@ private:
 
     int currentPresetIndex = 0;
     std::vector<juce::String> presetNames {
-        "01: Concert Marimba",
-        "02: Wooden Rosewood Bar",
-        "03: African Balafon / Kalimba",
-        "04: Glass & Metal Bar",
-        "05: Plucked Mallet Synth"
+        "01. Chiapas Cachimba Marimba",
+        "02. Hormiguillo Fiesta Marimba",
+        "03. Marimba de Pueblo (Vintage)",
+        "04. Deep Latin Club Pluck",
+        "05. Clean Concert Rosewood",
+        "06. African Balafon / Kalimba",
+        "07. Glass & Vibra Bars",
+        "08. Hypnotic Cumbia Mallet"
     };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ExtasisMarimbaAudioProcessor)
