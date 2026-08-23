@@ -17,7 +17,7 @@ juce_add_plugin(ExtasisMarimba
     BUNDLE_ID "com.laurorobles.ExtasisMarimba"
     PLUGIN_MANUFACTURER_CODE Exta
     PLUGIN_CODE Emrb
-    FORMATS VST3 AU Standalone
+    FORMATS VST3 AU Standalone CLAP
     PRODUCT_NAME "ExtasisMarimba"
     ICON_BIG assets/logo.png
     ICON_SMALL assets/logo.png

@@ -134,9 +134,7 @@ void MarimbaDisplay::paint(juce::Graphics& g)
     g.setColour(MarimbaLookAndFeel::getBrightAmber());
     g.drawFittedText("PATCH: " + currentPatchName.toUpperCase(), headerArea.toNearestInt(), juce::Justification::left, 1);
 
-    g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 9.5f, juce::Font::plain));
-    g.setColour(juce::Colour(0xff7a95aa));
-    g.drawFittedText("MODAL PHYSICAL SYNTHESIS // EXTASIS DSP", headerArea.toNearestInt(), juce::Justification::right, 1);
+    // Top right text removed to avoid collision
 
     // Divider line
     g.setColour(juce::Colour(0x2838e8d8));
@@ -151,19 +149,22 @@ void MarimbaDisplay::paint(juce::Graphics& g)
     g.setColour(MarimbaLookAndFeel::getLcdCyan());
     g.drawFittedText(currentParamName + "  |  " + currentValueText, footerArea.toNearestInt(), juce::Justification::left, 1);
 
-    // 4. Middle Area: Left (5 Modal Bars) & Right (Oscilloscope)
+    // 4. Middle Area: Left (Oscilloscope) & Right (Modal Bars)
     auto middleArea = lcdArea.reduced(6.0f, 2.0f);
-    auto leftModalArea = middleArea.removeFromLeft(middleArea.getWidth() * 0.48f);
-    auto rightScopeArea = middleArea;
+    auto rightModalArea = middleArea.removeFromRight(middleArea.getWidth() * 0.40f);
+    auto rightScopeArea = middleArea; // It's actually the left area now, but we keep the variable name for the code below
+    auto leftModalArea = rightModalArea;
+    leftModalArea.translate(4.0f, 0.0f);
 
     // --- LEFT: 5 Modal Resonator Bars ---
     g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 8.5f, juce::Font::bold));
     g.setColour(juce::Colour(0xff557788));
-    g.drawText("MODAL RESONATORS", leftModalArea.removeFromTop(11.0f), juce::Justification::left, false);
+    g.drawText("MODAL RESONATORS", leftModalArea.removeFromTop(11.0f), juce::Justification::centred, false);
 
-    float barWidth = 18.0f;
-    float totalBarSpace = leftModalArea.getWidth() - 8.0f;
-    float spacing = (totalBarSpace - (barWidth * 5.0f)) / 4.0f;
+    float barWidth = 14.0f;
+    float spacing = 12.0f;
+    float totalWidthNeeded = (barWidth * 5.0f) + (spacing * 4.0f);
+    float startX = leftModalArea.getX() + (leftModalArea.getWidth() - totalWidthNeeded) * 0.5f;
     
     float heights[5] = { 0.88f, 0.65f, 0.45f, 0.30f, 0.55f };
     const char* labels[5] = { "f0", "4f0", "9.2f", "16f", "PIPE" };
@@ -173,7 +174,7 @@ void MarimbaDisplay::paint(juce::Graphics& g)
 
     for (int i = 0; i < 5; ++i)
     {
-        float bx = leftModalArea.getX() + 4.0f + static_cast<float>(i) * (barWidth + spacing);
+        float bx = startX + static_cast<float>(i) * (barWidth + spacing);
         float currentH = maxBarH * heights[i] * (0.35f + animDecay * 0.65f + std::sin(animPhase + i * 1.2f) * 0.04f);
         float by = barBaseY - currentH;
 
@@ -199,7 +200,7 @@ void MarimbaDisplay::paint(juce::Graphics& g)
 
     // Divider Line
     g.setColour(juce::Colour(0x2238e8d8));
-    g.drawVerticalLine((int)(rightScopeArea.getX() - 4.0f), middleArea.getY(), middleArea.getBottom());
+    g.drawVerticalLine((int)(rightScopeArea.getRight() + 4.0f), middleArea.getY(), middleArea.getBottom());
 
     // --- RIGHT: Real-time Oscilloscope (Scope Buffer) ---
     g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 8.5f, juce::Font::bold));

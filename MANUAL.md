@@ -130,3 +130,6 @@ Extasis Marimba includes a **10-minute full-featured evaluation period**. To unl
 
 ---
 *© Extasis Records — Built with JUCE & Advanced Physical-FM DSP.*
+
+
+> **Licencias:** Consigue tu licencia oficial en [http://laurorobles.gumroad.com](http://laurorobles.gumroad.com)

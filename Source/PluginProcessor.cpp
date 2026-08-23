@@ -1,3 +1,4 @@
+#include "LicenseManager.h"
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
@@ -27,45 +28,23 @@ juce::AudioProcessorValueTreeState::ParameterLayout ExtasisMarimbaAudioProcessor
 {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
 
-    // 1. Mallet & Attack
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "hardness", "Mallet Hardness", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.65f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "noise", "Rubber Noise", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.40f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "click", "Strike Click", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.30f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "attack", "Attack Time", juce::NormalisableRange<float>(0.1f, 50.0f, 0.1f, 0.35f), 0.5f));
+    // 1. La Madera
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("hardness", "Dureza", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.65f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("overtones", "Posicion", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.50f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("material", "Afinacion", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.50f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("click", "Golpe", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.30f));
 
-    // 2. Wood & Modal FM
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "decay", "Bar Decay", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.55f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "material", "Bar Material", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.10f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "overtones", "Overtone Mix", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.60f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "organic", "Organic Drift", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.45f));
+    // 2. El Cajon
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("tube", "Resonancia", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.70f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("decay", "Retraso/Cuerpo", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.50f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("buzz", "Charleo", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.50f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("buzzVel", "Sensibilidad", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.80f));
 
-    // 3. Resonator & Buzz (La Cachimba)
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "tube", "Resonator Tube", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.70f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "buzz", "Cachimba Buzz", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.50f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "buzzVel", "Buzz Velocity", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.85f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "cutoff", "SEM Filter", juce::NormalisableRange<float>(100.0f, 20000.0f, 1.0f, 0.25f), 11000.0f));
-
-    // 4. Master & FX
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "spread", "Stereo Spread", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.65f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "drive", "Warm Drive", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.15f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "ambience", "Body Ambience", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.25f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "volume", "Master Volume", juce::NormalisableRange<float>(0.0f, 1.5f, 0.01f), 0.85f));
+    // 3. El Entorno
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("organic", "Imperfeccion", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.40f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("ambience", "Espacio", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.30f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("spread", "Estereo", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.50f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("volume", "Volumen", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.85f));
 
     return { params.begin(), params.end() };
 }
@@ -242,22 +221,22 @@ void ExtasisMarimbaAudioProcessor::loadPreset(int presetIndex)
     switch (presetIndex)
     {
         case 0: // 01. Chiapas Cachimba Marimba
-            setVal("hardness", 0.65f); setVal("noise", 0.40f); setVal("click", 0.30f); setVal("attack", 0.5f);
-            setVal("decay", 0.55f); setVal("material", 0.08f); setVal("overtones", 0.62f); setVal("organic", 0.50f);
-            setVal("tube", 0.75f); setVal("buzz", 0.60f); setVal("buzzVel", 0.88f); setVal("cutoff", 11500.0f);
-            setVal("spread", 0.65f); setVal("drive", 0.15f); setVal("ambience", 0.25f); setVal("volume", 0.85f);
+            setVal("hardness", 0.85f); setVal("noise", 0.60f); setVal("click", 0.80f); setVal("attack", 0.1f);
+            setVal("decay", 0.40f); setVal("material", 0.0f); setVal("overtones", 0.20f); setVal("organic", 0.50f);
+            setVal("tube", 0.90f); setVal("buzz", 0.85f); setVal("buzzVel", 0.95f); setVal("cutoff", 16000.0f);
+            setVal("spread", 0.80f); setVal("drive", 0.40f); setVal("ambience", 0.20f); setVal("volume", 0.85f);
             break;
         case 1: // 02. Hormiguillo Fiesta Marimba
-            setVal("hardness", 0.75f); setVal("noise", 0.48f); setVal("click", 0.45f); setVal("attack", 0.3f);
-            setVal("decay", 0.48f); setVal("material", 0.12f); setVal("overtones", 0.72f); setVal("organic", 0.40f);
-            setVal("tube", 0.60f); setVal("buzz", 0.70f); setVal("buzzVel", 0.92f); setVal("cutoff", 13500.0f);
-            setVal("spread", 0.70f); setVal("drive", 0.22f); setVal("ambience", 0.20f); setVal("volume", 0.85f);
+            setVal("hardness", 0.50f); setVal("noise", 0.20f); setVal("click", 0.30f); setVal("attack", 0.4f);
+            setVal("decay", 0.80f); setVal("material", 0.30f); setVal("overtones", 0.70f); setVal("organic", 0.10f);
+            setVal("tube", 0.40f); setVal("buzz", 0.20f); setVal("buzzVel", 0.40f); setVal("cutoff", 8000.0f);
+            setVal("spread", 0.30f); setVal("drive", 0.10f); setVal("ambience", 0.60f); setVal("volume", 0.85f);
             break;
         case 2: // 03. Marimba de Pueblo (Vintage)
-            setVal("hardness", 0.55f); setVal("noise", 0.55f); setVal("click", 0.35f); setVal("attack", 0.6f);
-            setVal("decay", 0.65f); setVal("material", 0.05f); setVal("overtones", 0.58f); setVal("organic", 0.85f);
-            setVal("tube", 0.85f); setVal("buzz", 0.75f); setVal("buzzVel", 0.80f); setVal("cutoff", 9800.0f);
-            setVal("spread", 0.60f); setVal("drive", 0.25f); setVal("ambience", 0.35f); setVal("volume", 0.85f);
+            setVal("hardness", 0.20f); setVal("noise", 0.90f); setVal("click", 0.10f); setVal("attack", 0.8f);
+            setVal("decay", 0.20f); setVal("material", 0.60f); setVal("overtones", 0.95f); setVal("organic", 1.0f);
+            setVal("tube", 1.0f); setVal("buzz", 1.0f); setVal("buzzVel", 0.10f); setVal("cutoff", 4000.0f);
+            setVal("spread", 0.10f); setVal("drive", 0.80f); setVal("ambience", 0.90f); setVal("volume", 0.85f);
             break;
         case 3: // 04. Zapateado Veracruzano
             setVal("hardness", 0.80f); setVal("noise", 0.42f); setVal("click", 0.50f); setVal("attack", 0.2f);
@@ -470,26 +449,16 @@ void ExtasisMarimbaAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer
     // 1. Update synth parameters from APVTS
     synthEngine.setParameters(
         *apvts.getRawParameterValue("hardness"),
-        *apvts.getRawParameterValue("noise"),
-        *apvts.getRawParameterValue("click"),
-        *apvts.getRawParameterValue("attack"),
-        *apvts.getRawParameterValue("decay"),
-        *apvts.getRawParameterValue("material"),
         *apvts.getRawParameterValue("overtones"),
-        *apvts.getRawParameterValue("organic"),
+        *apvts.getRawParameterValue("material"),
+        *apvts.getRawParameterValue("click"),
         *apvts.getRawParameterValue("tube"),
+        *apvts.getRawParameterValue("decay"),
         *apvts.getRawParameterValue("buzz"),
         *apvts.getRawParameterValue("buzzVel"),
-        *apvts.getRawParameterValue("cutoff"),
-        0.15f,  // resonance
-        0.40f,  // filterEnvAmt
-        850.0f, // decayMs
-        0.0f,   // sustain
-        380.0f, // release
-        true,   // snap
-        *apvts.getRawParameterValue("spread"),
-        *apvts.getRawParameterValue("drive"),
+        *apvts.getRawParameterValue("organic"),
         *apvts.getRawParameterValue("ambience"),
+        *apvts.getRawParameterValue("spread"),
         *apvts.getRawParameterValue("volume")
     );
 

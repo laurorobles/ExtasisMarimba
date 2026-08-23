@@ -1,11 +1,11 @@
 import os
 
 REQUIRED_FILES = {
-    'MANUAL.md': '# Manual\n\nEste es el manual de usuario.',
-    'PRESENTATION.md': '# Presentación\n\nDocumento de presentación.',
-    'TECHNICAL.md': '# Especificaciones Técnicas\n\nDetalles técnicos del proyecto.',
-    'ARCHITECTURE.md': '# Arquitectura de Señal\n\nDetalles de la arquitectura.',
-    'README.md': '# README\n\nInformación principal.'
+    'MANUAL.md': '# Manual\n\nEste es el manual de usuario.\n\n> **Licencias:** Consigue tu licencia oficial en [http://laurorobles.gumroad.com](http://laurorobles.gumroad.com)',
+    'PRESENTATION.md': '# Presentación\n\nDocumento de presentación.\n\n> **Licencias:** Consigue tu licencia oficial en [http://laurorobles.gumroad.com](http://laurorobles.gumroad.com)',
+    'TECHNICAL.md': '# Especificaciones Técnicas\n\nDetalles técnicos del proyecto.\n\n> **Licencias:** Consigue tu licencia oficial en [http://laurorobles.gumroad.com](http://laurorobles.gumroad.com)',
+    'ARCHITECTURE.md': '# Arquitectura de Señal\n\nDetalles de la arquitectura.\n\n> **Licencias:** Consigue tu licencia oficial en [http://laurorobles.gumroad.com](http://laurorobles.gumroad.com)',
+    'README.md': '# README\n\nInformación principal.\n\n> **Licencias:** Consigue tu licencia oficial en [http://laurorobles.gumroad.com](http://laurorobles.gumroad.com)'
 }
 
 def update_docs():
@@ -17,7 +17,11 @@ def update_docs():
             with open(filepath, 'w') as f:
                 f.write(default_content)
         else:
-            print(f"{filename} ya existe en el proyecto, verificando...")
+            with open(filepath, 'r') as f:
+                content = f.read()
+            if "laurorobles.gumroad.com" not in content:
+                with open(filepath, 'a') as f:
+                    f.write("\n\n> **Licencias:** Consigue tu licencia oficial en [http://laurorobles.gumroad.com](http://laurorobles.gumroad.com)\n")
 
 if __name__ == '__main__':
     update_docs()

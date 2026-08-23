@@ -79,3 +79,6 @@ Extasis Marimba operates with a **10-minute full-featured evaluation period**. F
 
 ---
 *© Extasis Records — Made with ❤️ in Mexico.*
+
+
+> **Licencias:** Consigue tu licencia oficial en [http://laurorobles.gumroad.com](http://laurorobles.gumroad.com)

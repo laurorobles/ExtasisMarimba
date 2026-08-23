@@ -145,6 +145,8 @@ public:
     void comboBoxChanged(juce::ComboBox* comboBox) override;
 
 private:
+    juce::HyperlinkButton gumroadLinkBtn { "BUY LICENSE", juce::URL("http://laurorobles.gumroad.com") };
+
     ExtasisMarimbaAudioProcessor& processorRef;
     ExtasisGUI::MarimbaLookAndFeel customLookAndFeel;
 

@@ -227,3 +227,6 @@ Dynamic cutoff modulated by note velocity and the primary strike envelope.
 
 ---
 *© Extasis Records — Documented & Maintained by Lauro Robles.*
+
+
+> **Licencias:** Consigue tu licencia oficial en [http://laurorobles.gumroad.com](http://laurorobles.gumroad.com)

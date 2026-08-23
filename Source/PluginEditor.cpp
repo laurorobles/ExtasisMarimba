@@ -3,6 +3,9 @@
 ExtasisMarimbaAudioProcessorEditor::ExtasisMarimbaAudioProcessorEditor(ExtasisMarimbaAudioProcessor& p)
     : AudioProcessorEditor(&p), processorRef(p)
 {
+    addAndMakeVisible(gumroadLinkBtn);
+    gumroadLinkBtn.setColour(juce::HyperlinkButton::textColourId, juce::Colours::yellow);
+
     setLookAndFeel(&customLookAndFeel);
 
     // 1. Display Setup & Real-Time Audio Stream
@@ -107,6 +110,8 @@ ExtasisMarimbaAudioProcessorEditor::ExtasisMarimbaAudioProcessorEditor(ExtasisMa
 
     addChildComponent(activationOverlay);
     activationOverlay.onActivate = [this](const juce::String& key) {
+    gumroadLinkBtn.setBounds(getWidth() - 110, 10, 100, 24);
+
         if (LicenseManager::validateSerial(key))
         {
             LicenseManager::saveLicense(key);
@@ -135,32 +140,27 @@ ExtasisMarimbaAudioProcessorEditor::ExtasisMarimbaAudioProcessorEditor(ExtasisMa
 
     // 5. Create all Knobs with Live Value Labels
     // Section 1: Mallet & Attack
-    createKnob("hardness", "HARDNESS");
-    createKnob("noise", "RUBBER NOISE");
-    createKnob("click", "CLICK / SNAP");
-    createKnob("attack", "ATTACK");
+    // 1. La Madera
+    createKnob("hardness", "DUREZA");
+    createKnob("overtones", "POSICION");
+    createKnob("material", "AFINACION");
+    createKnob("click", "GOLPE");
 
-    // Section 2: Wood & Modal FM
-    createKnob("decay", "BAR DECAY");
-    createKnob("material", "MATERIAL");
-    createKnob("overtones", "OVERTONES");
-    createKnob("organic", "PUEBLO DRIFT");
+    // 2. El Cajon
+    createKnob("tube", "RESONANCIA");
+    createKnob("decay", "CUERPO");
+    createKnob("buzz", "CHARLEO");
+    createKnob("buzzVel", "SENS. CHARLEO");
 
-    // Section 3: Resonator & Buzz (La Cachimba)
-    createKnob("tube", "TUBE CAVITY");
-    createKnob("buzz", "CACHIMBA BUZZ");
-    createKnob("buzzVel", "BUZZ DYNAMICS");
-    createKnob("cutoff", "SEM FILTER");
-
-    // Section 4: Master & FX
-    createKnob("spread", "SPREAD");
-    createKnob("drive", "WARM DRIVE");
-    createKnob("ambience", "AMBIENCE");
-    createKnob("volume", "MASTER VOL");
+    // 3. El Entorno
+    createKnob("organic", "IMPERFECCION");
+    createKnob("ambience", "ESPACIO");
+    createKnob("spread", "ESTEREO");
+    createKnob("volume", "VOLUMEN");
 
     display.setPatchName(presetBox.getText());
 
-    setSize(920, 520);
+    setSize(580, 380);
     startTimerHz(4);
 }
 
@@ -350,17 +350,14 @@ void ExtasisMarimbaAudioProcessorEditor::paint(juce::Graphics& g)
 
     g.setFont(juce::FontOptions(9.5f, juce::Font::bold));
     g.setColour(juce::Colour(0xff8e96a4));
-    g.drawText("- MEXICAN PHYSICAL-FM SYNTHESIZER // ACOUSTIC CACHIMBA & MODAL RESONANCE", 208, 8, 480, 18, juce::Justification::left);
 
     // coded by @laurorobles in tiny font right below the title
     g.setFont(juce::FontOptions(8.5f, juce::Font::bold));
     g.setColour(juce::Colour(0xff707a8a));
     g.drawText("coded by @laurorobles // Extasis Records", 22, 26, 260, 14, juce::Justification::left);
 
-    // Right Decal: |||||||| MODAL-FM DSP
     g.setFont(juce::FontOptions(9.5f, juce::Font::bold));
     g.setColour(ExtasisGUI::MarimbaLookAndFeel::getAmberGold().withAlpha(0.85f));
-    g.drawText("|||||||| MODAL-FM DSP // 24-BIT 96kHz", getWidth() - 435, 26, 230, 14, juce::Justification::right);
 
     // Amber horizontal glowing accent strip
     g.setColour(ExtasisGUI::MarimbaLookAndFeel::getAmberGold());
@@ -385,11 +382,10 @@ void ExtasisMarimbaAudioProcessorEditor::paint(juce::Graphics& g)
         g.drawHorizontalLine((int)r.getY() + 20, r.getX() + 8.0f, r.getRight() - 8.0f);
     };
 
-    // Bottom 4 Modular Sections
-    drawSectionBox(juce::Rectangle<float>(20, 230, 210, 275), "1. MALLET & ATTACK");
-    drawSectionBox(juce::Rectangle<float>(240, 230, 210, 275), "2. WOOD & MODAL FM");
-    drawSectionBox(juce::Rectangle<float>(460, 230, 220, 275), "3. RESONATOR & BUZZ");
-    drawSectionBox(juce::Rectangle<float>(690, 230, 210, 275), "4. MASTER & FX");
+    // Bottom 3 Modular Sections
+    drawSectionBox(juce::Rectangle<float>(15, 170, 175, 195), "1. LA MADERA");
+    drawSectionBox(juce::Rectangle<float>(200, 170, 175, 195), "2. EL CAJON");
+    drawSectionBox(juce::Rectangle<float>(385, 170, 180, 195), "3. EL ENTORNO");
 }
 
 void ExtasisMarimbaAudioProcessorEditor::resized()
@@ -400,52 +396,51 @@ void ExtasisMarimbaAudioProcessorEditor::resized()
     // Header License Badge
     licenseBadgeButton.setBounds(getWidth() - 110, 8, 90, 24);
 
-    // Display on top left (x=20, y=52, w=570, h=168)
-    display.setBounds(20, 52, 570, 168);
+    // Display on top left
+    display.setBounds(15, 45, 330, 110);
 
-    // Preset & Trigger Right Module (x=606, y=52, w=294, h=168)
-    // Row 1: Preset dropdown + Prev/Next + Save
-    presetBox.setBounds(606, 52, 172, 30);
-    prevPresetBtn.setBounds(782, 52, 28, 30);
-    nextPresetBtn.setBounds(814, 52, 28, 30);
-    savePresetBtn.setBounds(846, 52, 54, 30);
+    // Preset & Trigger Right Module
+    presetBox.setBounds(355, 45, 120, 26);
+    prevPresetBtn.setBounds(480, 45, 20, 26);
+    nextPresetBtn.setBounds(505, 45, 20, 26);
+    savePresetBtn.setBounds(530, 45, 35, 26);
 
-    // Row 2: Trigger Pad with Logo
-    triggerButton.setBounds(606, 88, 294, 132);
+    // Trigger Pad with Logo
+    triggerButton.setBounds(355, 75, 210, 80);
 
-    // Knobs Layout inside the 4 sections
-    auto placeKnob = [this](const juce::String& id, int x, int y, int w = 84, int h = 88) {
+    // Knobs Layout inside the 3 sections
+    auto placeKnob = [this](const juce::String& id, int x, int y, int w = 55, int h = 75) {
         if (controls.find(id) != controls.end())
         {
-            controls[id].label->setBounds(x - 2, y, w + 4, 14);
-            controls[id].slider->setBounds(x, y + 14, w, h - 28);
-            controls[id].valueLabel->setBounds(x - 2, y + h - 14, w + 4, 14);
+            if (controls[id].label) {
+                controls[id].label->setFont(juce::FontOptions(8.5f, juce::Font::bold));
+                controls[id].label->setBounds(x - 5, y, w + 10, 14);
+            }
+            if (controls[id].slider) controls[id].slider->setBounds(x, y + 14, w, h - 28);
+            if (controls[id].valueLabel) {
+                controls[id].valueLabel->setFont(juce::FontOptions(8.5f, juce::Font::bold));
+                controls[id].valueLabel->setBounds(x - 5, y + h - 14, w + 10, 14);
+            }
         }
     };
 
-    // Section 1: Mallet & Attack (x=20)
-    placeKnob("hardness", 30, 258, 84, 94);
-    placeKnob("noise", 130, 258, 84, 94);
-    placeKnob("click", 30, 372, 84, 94);
-    placeKnob("attack", 130, 372, 84, 94);
+    // Section 1: La Madera
+    placeKnob("hardness", 35, 200);
+    placeKnob("overtones", 115, 200);
+    placeKnob("material", 35, 280);
+    placeKnob("click", 115, 280);
 
-    // Section 2: Wood & Modal FM (x=240)
-    placeKnob("decay", 250, 258, 84, 94);
-    placeKnob("material", 350, 258, 84, 94);
-    placeKnob("overtones", 250, 372, 84, 94);
-    placeKnob("organic", 350, 372, 84, 94);
+    // Section 2: El Cajon
+    placeKnob("tube", 220, 200);
+    placeKnob("decay", 300, 200);
+    placeKnob("buzz", 220, 280);
+    placeKnob("buzzVel", 300, 280);
 
-    // Section 3: Resonator & Buzz / La Cachimba (x=460)
-    placeKnob("tube", 472, 258, 84, 94);
-    placeKnob("buzz", 578, 258, 84, 94);
-    placeKnob("buzzVel", 472, 372, 84, 94);
-    placeKnob("cutoff", 578, 372, 84, 94);
-
-    // Section 4: Master & FX (x=690)
-    placeKnob("spread", 702, 258, 84, 94);
-    placeKnob("drive", 802, 258, 84, 94);
-    placeKnob("ambience", 702, 372, 84, 94);
-    placeKnob("volume", 802, 372, 84, 94);
+    // Section 3: El Entorno
+    placeKnob("organic", 405, 200);
+    placeKnob("ambience", 485, 200);
+    placeKnob("spread", 405, 280);
+    placeKnob("volume", 485, 280);
 
     // Overlay full bounds
     activationOverlay.setBounds(getLocalBounds());

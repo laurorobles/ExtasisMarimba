@@ -46,7 +46,7 @@ public:
     void setStateInformation(const void* data, int sizeInBytes) override;
 
     juce::AudioProcessorValueTreeState& getAPVTS() { return apvts; }
-    ExtasisDSP::MarimbaSynthEngine& getSynthEngine() { return synthEngine; }
+    MarimbaSynthEngine& getSynthEngine() { return synthEngine; }
 
     // Audition Trigger (Thread-safe)
     void triggerAuditionNote(int noteNumber = 60, float velocity = 1.0f);
@@ -62,10 +62,12 @@ public:
     std::function<void(const float*, int)> onAudioBlockProcessed;
 
 private:
+    uint64_t samplesProcessed = 0;
+
     juce::AudioProcessorValueTreeState apvts;
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
-    ExtasisDSP::MarimbaSynthEngine synthEngine;
+    MarimbaSynthEngine synthEngine;
 
     // Audition Note queue
     struct TriggerEvent { int note; float vel; bool isNoteOn; };
