@@ -1,0 +1,53 @@
+cmake_minimum_required(VERSION 3.15)
+project(ExtasisMarimba VERSION 1.0.0 LANGUAGES C CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# JUCE integration
+add_subdirectory(/Users/babyonk1/.gemini/antigravity/scratch/JUCE ${CMAKE_BINARY_DIR}/JUCE)
+
+juce_add_plugin(ExtasisMarimba
+    PLUGIN_MANUFACTURER_CODE Exta
+    PLUGIN_CODE Emrb
+    FORMATS VST3 AU Standalone
+    PRODUCT_NAME "ExtasisMarimba"
+    IS_SYNTH TRUE
+    NEEDS_MIDI_INPUT TRUE
+    NEEDS_MIDI_OUTPUT FALSE
+    IS_MIDI_EFFECT FALSE
+    COPY_PLUGIN_AFTER_BUILD FALSE
+)
+
+juce_generate_juce_header(ExtasisMarimba)
+
+target_sources(ExtasisMarimba PRIVATE
+    Source/PluginProcessor.cpp
+    Source/PluginProcessor.h
+    Source/PluginEditor.cpp
+    Source/PluginEditor.h
+    Source/DSP/MalletExciter.h
+    Source/DSP/ModalBarResonator.h
+    Source/DSP/SEMFilter.h
+    Source/DSP/PercussiveEnvelope.h
+    Source/DSP/StereoBodyProcessor.h
+    Source/DSP/MarimbaSynthEngine.h
+    Source/GUI/MarimbaLookAndFeel.h
+    Source/GUI/MarimbaLookAndFeel.cpp
+    Source/GUI/MarimbaDisplay.h
+    Source/GUI/MarimbaDisplay.cpp
+)
+
+target_compile_definitions(ExtasisMarimba PUBLIC
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_VST3_CAN_REPLACE_VST2=0
+)
+
+target_link_libraries(ExtasisMarimba PRIVATE
+    juce::juce_audio_utils
+    juce::juce_audio_processors
+    juce::juce_dsp
+    juce::juce_gui_basics
+    juce::juce_gui_extra
+)

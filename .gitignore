@@ -1,0 +1,22 @@
+# Build output directories
+build/
+bin/
+*.o
+*.a
+*.dylib
+*.vst3
+*.component
+*.app
+
+# IDE & Editor files
+.DS_Store
+.vscode/
+.idea/
+*.xcodeproj
+*.xcworkspace
+*.suo
+*.user
+
+# License generated keys pool
+serials*.txt
+license.key
