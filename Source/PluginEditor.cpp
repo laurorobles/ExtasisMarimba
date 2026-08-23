@@ -306,11 +306,19 @@ void ExtasisMarimbaAudioProcessorEditor::comboBoxChanged(juce::ComboBox* comboBo
         processorRef.setCurrentProgram(idx);
         display.setPatchName(presetBox.getText());
 
-        for (auto& pair : controls)
+                for (auto& pair : controls)
         {
-            if (pair.second.slider != nullptr && pair.second.valueLabel != nullptr)
+            if (auto* param = processorRef.getAPVTS().getParameter(pair.first))
             {
-                pair.second.valueLabel->setText(getFormattedValueText(pair.first, pair.second.slider->getValue()), juce::dontSendNotification);
+                float trueVal = param->convertFrom0to1(param->getValue());
+                if (pair.second.slider != nullptr)
+                {
+                    pair.second.slider->setValue(trueVal, juce::dontSendNotification);
+                }
+                if (pair.second.valueLabel != nullptr)
+                {
+                    pair.second.valueLabel->setText(getFormattedValueText(pair.first, trueVal), juce::dontSendNotification);
+                }
             }
         }
     }
