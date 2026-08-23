@@ -1,6 +1,7 @@
 #pragma once
 #include <cmath>
 #include <algorithm>
+#include <random>
 
 namespace ExtasisDSP
 {
@@ -8,11 +9,19 @@ namespace ExtasisDSP
 class BuzzMembrane
 {
 public:
-    BuzzMembrane() = default;
+    BuzzMembrane() : rng(std::random_device{}()), dist(-1.0f, 1.0f) {}
 
     void prepare(double sampleRate)
     {
         currentSampleRate = sampleRate;
+        
+        // Setup 1-pole filters for the 3kHz - 5.5kHz noise bandpass
+        float hpFreq = 3000.0f;
+        float lpFreq = 5500.0f;
+        
+        hpCoeff = std::exp(-2.0f * 3.14159265f * hpFreq / static_cast<float>(currentSampleRate));
+        lpCoeff = std::exp(-2.0f * 3.14159265f * lpFreq / static_cast<float>(currentSampleRate));
+
         reset();
     }
 
@@ -21,6 +30,8 @@ public:
         phaseCarrier = 0.0f;
         phaseMod = 0.0f;
         envLevel = 0.0f;
+        noiseState1 = 0.0f;
+        noiseState2 = 0.0f;
         isActive = false;
     }
 
@@ -37,19 +48,22 @@ public:
             return;
         }
 
-        // Carrier at 2x fundamental, Modulator at 7.2x fundamental for nasal buzz timbre
+        // FM Core for the Tonal Buzz element
         carrierFreq = fundamentalFreq * 2.0f;
         modFreq = fundamentalFreq * 7.2f;
 
-        // Dynamic FM index driven by velocity sensitivity
-        float dynamicVelocityScale = (1.0f - velSens) + velSens * (vel * vel);
-        effectiveIndex = amount * (1.2f + dynamicVelocityScale * 3.5f);
+        // Dynamic Velocity Scaling (Non-Linear Excitation)
+        float dynamicVelocityScale = (1.0f - velSens) + velSens * (vel * vel * vel); // Cubed for explosive attack
+        effectiveIndex = amount * (1.2f + dynamicVelocityScale * 4.5f);
 
         envLevel = 1.0f;
-        // Decay in approx 140ms - 260ms
-        float decayMs = 140.0f + (1.0f - amount) * 120.0f;
+        
+        // Decay in approx 60ms - 180ms (Very fast drop for the Erosion / Wide Noise charleo)
+        float decayMs = 60.0f + (1.0f - amount) * 120.0f;
         decayCoeff = std::exp(-4.6f / ((decayMs * 0.001f) * static_cast<float>(currentSampleRate)));
-        sustainFloor = amount * 0.18f * dynamicVelocityScale;
+        
+        // Charleo doesn't sustain much unless amount is very high
+        sustainFloor = amount * 0.08f * dynamicVelocityScale;
 
         isActive = true;
     }
@@ -64,7 +78,7 @@ public:
         if (!isActive || amount < 0.005f)
             return 0.0f;
 
-        // 1. Update FM phases
+        // --- 1. Tonal Membrane Buzz (Non-Linear FM) ---
         float modInc = (2.0f * 3.14159265f * modFreq) / static_cast<float>(currentSampleRate);
         float carrierInc = (2.0f * 3.14159265f * carrierFreq) / static_cast<float>(currentSampleRate);
 
@@ -73,16 +87,34 @@ public:
 
         float modSig = std::sin(phaseMod) * effectiveIndex * envLevel;
 
-        phaseCarrier += carrierInc + modSig * 0.15f;
+        phaseCarrier += carrierInc + modSig * 0.25f;
         if (phaseCarrier > 6.283185f) phaseCarrier -= 6.283185f;
 
         float carrierSig = std::sin(phaseCarrier + modSig);
+        
+        // Asymmetric Chatter (Membrane rattling against wax)
+        float tonalChatter = (carrierSig > 0.0f) ? (carrierSig * 1.5f - 0.5f * carrierSig * carrierSig * carrierSig)
+                                                 : (carrierSig * 0.6f);
 
-        // 2. Non-linear buzzing chatter (membrane rattling against the cachimba hole)
-        float buzzChatter = (carrierSig > 0.0f) ? (carrierSig * 1.3f - 0.3f * carrierSig * carrierSig * carrierSig)
-                                                : (carrierSig * 0.5f);
+        // --- 2. Wide Noise Charleo (Ableton Erosion Style) ---
+        // Generates white noise, bandpassed at 3kHz - 5.5kHz
+        float rawNoise = dist(rng);
+        
+        // 1-pole high-pass
+        noiseState1 = hpCoeff * noiseState1 + (1.0f - hpCoeff) * rawNoise;
+        float hpOut = rawNoise - noiseState1;
+        
+        // 1-pole low-pass
+        noiseState2 = lpCoeff * noiseState2 + (1.0f - lpCoeff) * hpOut;
+        float noiseCharleo = noiseState2 * 2.5f; // Gain compensation
 
-        // 3. Envelope decay towards sustain floor
+        // The charleo noise only triggers heavily on high velocities (Threshold behavior)
+        float noiseThreshold = vel * vel;
+        
+        // Blend Tonal Buzz and Noise Charleo
+        float blendedBuzz = tonalChatter * 0.6f + noiseCharleo * 0.4f * noiseThreshold;
+
+        // --- 3. Envelope follower logic ---
         envLevel = sustainFloor + (envLevel - sustainFloor) * decayCoeff;
         if (envLevel < 0.0005f)
         {
@@ -90,7 +122,8 @@ public:
             isActive = false;
         }
 
-        return buzzChatter * envLevel * amount * 0.85f;
+        // Apply Envelope and Amount to final buzz
+        return blendedBuzz * envLevel * amount * 1.2f;
     }
 
     bool isPlaying() const { return isActive; }
@@ -102,6 +135,15 @@ private:
     float modFreq = 3168.0f;
     float phaseCarrier = 0.0f;
     float phaseMod = 0.0f;
+    
+    // Noise Generator
+    std::mt19937 rng;
+    std::uniform_real_distribution<float> dist;
+    float hpCoeff = 0.0f;
+    float lpCoeff = 0.0f;
+    float noiseState1 = 0.0f;
+    float noiseState2 = 0.0f;
+
     float envLevel = 0.0f;
     float decayCoeff = 0.999f;
     float sustainFloor = 0.0f;
