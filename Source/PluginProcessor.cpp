@@ -6,6 +6,7 @@ ExtasisMarimbaAudioProcessor::ExtasisMarimbaAudioProcessor()
                      .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
       apvts(*this, nullptr, "Parameters", createParameterLayout())
 {
+    apvts.state = juce::ValueTree("Parameters");
     checkLicenseState();
 }
 
