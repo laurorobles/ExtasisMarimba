@@ -125,6 +125,7 @@ public:
 
     void noteOn(int midiNote, float velocity)
     {
+        std::cout << "NOTE ON: Note=" << midiNote << " Vel=" << velocity << " Material=" << material << " Hardness=" << malletHardness << " Buzz=" << buzzAmount << std::endl;
         if (velocity <= 0.001f)
         {
             noteOff(midiNote);
