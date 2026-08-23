@@ -44,11 +44,11 @@ juce::AudioProcessorValueTreeState::ParameterLayout ExtasisMarimbaAudioProcessor
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "attack", "Attack", juce::NormalisableRange<float>(0.1f, 100.0f, 0.1f, 0.3f), 0.5f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "envDecay", "Decay", juce::NormalisableRange<float>(5.0f, 3000.0f, 1.0f, 0.35f), 520.0f));
+        "envDecay", "Decay", juce::NormalisableRange<float>(5.0f, 3000.0f, 1.0f, 0.35f), 800.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "sustain", "Sustain", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "release", "Release", juce::NormalisableRange<float>(5.0f, 2000.0f, 1.0f, 0.35f), 280.0f));
+        "release", "Release", juce::NormalisableRange<float>(5.0f, 2000.0f, 1.0f, 0.35f), 350.0f));
     params.push_back(std::make_unique<juce::AudioParameterBool>(
         "snap", "Snap Curve", true));
 
@@ -89,6 +89,26 @@ juce::String ExtasisMarimbaAudioProcessor::getPresetTitle(int index) const
     return (index >= 0 && index < (int)presetNames.size()) ? presetNames[index] : "Preset";
 }
 
+void ExtasisMarimbaAudioProcessor::triggerAuditionNote(int noteNumber, float velocity)
+{
+    int nextW = (fifoWriteIdx.load() + 1) % FIFO_SIZE;
+    if (nextW != fifoReadIdx.load())
+    {
+        triggerFifo[fifoWriteIdx.load()] = { noteNumber, velocity, true };
+        fifoWriteIdx.store(nextW);
+    }
+}
+
+void ExtasisMarimbaAudioProcessor::releaseAuditionNote(int noteNumber)
+{
+    int nextW = (fifoWriteIdx.load() + 1) % FIFO_SIZE;
+    if (nextW != fifoReadIdx.load())
+    {
+        triggerFifo[fifoWriteIdx.load()] = { noteNumber, 0.0f, false };
+        fifoWriteIdx.store(nextW);
+    }
+}
+
 void ExtasisMarimbaAudioProcessor::loadPreset(int presetIndex)
 {
     if (presetIndex < 0 || presetIndex >= (int)presetNames.size())
@@ -114,9 +134,9 @@ void ExtasisMarimbaAudioProcessor::loadPreset(int presetIndex)
             setVal("resonance", 0.15f);
             setVal("filterEnv", 0.40f);
             setVal("attack", 0.5f);
-            setVal("envDecay", 520.0f);
+            setVal("envDecay", 800.0f);
             setVal("sustain", 0.0f);
-            setVal("release", 280.0f);
+            setVal("release", 350.0f);
             setVal("spread", 0.65f);
             setVal("drive", 0.15f);
             setVal("ambience", 0.20f);
@@ -133,9 +153,9 @@ void ExtasisMarimbaAudioProcessor::loadPreset(int presetIndex)
             setVal("resonance", 0.10f);
             setVal("filterEnv", 0.30f);
             setVal("attack", 0.8f);
-            setVal("envDecay", 750.0f);
+            setVal("envDecay", 950.0f);
             setVal("sustain", 0.0f);
-            setVal("release", 400.0f);
+            setVal("release", 450.0f);
             setVal("spread", 0.80f);
             setVal("drive", 0.08f);
             setVal("ambience", 0.40f);
@@ -152,9 +172,9 @@ void ExtasisMarimbaAudioProcessor::loadPreset(int presetIndex)
             setVal("resonance", 0.25f);
             setVal("filterEnv", 0.60f);
             setVal("attack", 0.3f);
-            setVal("envDecay", 420.0f);
+            setVal("envDecay", 600.0f);
             setVal("sustain", 0.0f);
-            setVal("release", 220.0f);
+            setVal("release", 280.0f);
             setVal("spread", 0.50f);
             setVal("drive", 0.28f);
             setVal("ambience", 0.15f);
@@ -171,9 +191,9 @@ void ExtasisMarimbaAudioProcessor::loadPreset(int presetIndex)
             setVal("resonance", 0.30f);
             setVal("filterEnv", 0.50f);
             setVal("attack", 0.2f);
-            setVal("envDecay", 950.0f);
+            setVal("envDecay", 1200.0f);
             setVal("sustain", 0.05f);
-            setVal("release", 600.0f);
+            setVal("release", 700.0f);
             setVal("spread", 0.75f);
             setVal("drive", 0.10f);
             setVal("ambience", 0.50f);
@@ -190,9 +210,9 @@ void ExtasisMarimbaAudioProcessor::loadPreset(int presetIndex)
             setVal("resonance", 0.50f);
             setVal("filterEnv", 0.80f);
             setVal("attack", 1.0f);
-            setVal("envDecay", 600.0f);
+            setVal("envDecay", 750.0f);
             setVal("sustain", 0.10f);
-            setVal("release", 350.0f);
+            setVal("release", 400.0f);
             setVal("spread", 0.60f);
             setVal("drive", 0.35f);
             setVal("ambience", 0.30f);
@@ -229,7 +249,7 @@ void ExtasisMarimbaAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear(i, 0, buffer.getNumSamples());
 
-    // Update synth parameters from APVTS
+    // 1. Update synth parameters from APVTS
     synthEngine.setParameters(
         *apvts.getRawParameterValue("hardness"),
         *apvts.getRawParameterValue("click"),
@@ -251,7 +271,19 @@ void ExtasisMarimbaAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer
         *apvts.getRawParameterValue("volume")
     );
 
-    // Process MIDI
+    // 2. Consume Trigger events from GUI
+    while (fifoReadIdx.load() != fifoWriteIdx.load())
+    {
+        auto ev = triggerFifo[fifoReadIdx.load()];
+        if (ev.isNoteOn)
+            synthEngine.noteOn(ev.note, ev.vel);
+        else
+            synthEngine.noteOff(ev.note);
+
+        fifoReadIdx.store((fifoReadIdx.load() + 1) % FIFO_SIZE);
+    }
+
+    // 3. Process incoming MIDI messages
     for (const auto metadata : midiMessages)
     {
         const auto msg = metadata.getMessage();
@@ -269,10 +301,10 @@ void ExtasisMarimbaAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer
         }
     }
 
-    // Render Audio
+    // 4. Render Synth Audio
     synthEngine.renderAudio(buffer, buffer.getNumSamples());
 
-    // Stream to GUI Visualizer
+    // 5. Stream audio to Visualizer
     if (onAudioBlockProcessed != nullptr && buffer.getNumChannels() > 0)
     {
         onAudioBlockProcessed(buffer.getReadPointer(0), buffer.getNumSamples());

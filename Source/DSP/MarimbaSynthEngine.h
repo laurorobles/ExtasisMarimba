@@ -16,7 +16,7 @@ struct MarimbaVoice
     ModalBarResonator resonator;
     SEMFilter filter;
     PercussiveEnvelope ampEnv;
-    PercussiveEnvelope strikeEnv; // Cycling/auxiliary strike modulation envelope
+    PercussiveEnvelope strikeEnv;
 
     int noteNumber = -1;
     float currentFreq = 440.0f;
@@ -48,14 +48,15 @@ struct MarimbaVoice
         age = 0;
     }
 
-    void noteOn(int midiNote, float vel, float glideTimeMs, double sampleRate)
+    void noteOn(int midiNote, float vel, float glideTimeMs, double sampleRate,
+                float attackMs, float decayMs, float sustainLevel, float releaseMs, bool isSnap)
     {
         noteNumber = midiNote;
         velocity = vel;
         isNoteActive = true;
         age = 0;
 
-        // Calculate stereo panning based on keyboard position (MIDI 24 C1 to MIDI 96 C7)
+        // Stereo panning based on key (C1 to C7)
         keyPan = (static_cast<float>(midiNote) - 60.0f) / 36.0f;
         keyPan = std::max(-1.0f, std::min(1.0f, keyPan));
 
@@ -65,7 +66,10 @@ struct MarimbaVoice
             currentFreq = targetFreq;
         }
 
-        // Trigger envelopes
+        // Configure and trigger envelopes
+        ampEnv.setParameters(attackMs, decayMs, sustainLevel, releaseMs, isSnap);
+        strikeEnv.setParameters(0.5f, 35.0f, 0.0f, 20.0f, true);
+
         ampEnv.trigger(vel);
         strikeEnv.trigger(vel);
     }
@@ -78,7 +82,7 @@ struct MarimbaVoice
 
     bool isVoiceActive() const
     {
-        return isNoteActive && (ampEnv.isActive() || exciter.isPlaying());
+        return isNoteActive && (ampEnv.isActive() || exciter.isPlaying() || resonator.hasEnergy());
     }
 };
 
@@ -112,23 +116,25 @@ public:
 
     void noteOn(int midiNote, float velocity)
     {
+        if (velocity <= 0.001f)
+        {
+            noteOff(midiNote);
+            return;
+        }
+
         int voiceIndex = findFreeVoice();
         auto& voice = voices[voiceIndex];
 
-        voice.noteOn(midiNote, velocity, glideTime, currentSampleRate);
+        // 1. Configure and trigger note
+        voice.noteOn(midiNote, velocity, glideTime, currentSampleRate,
+                     attackMs, decayMs, sustainLevel, releaseMs, isSnap);
 
-        // Exciter trigger with velocity sensitivity
+        // 2. Exciter trigger with velocity sensitivity
         float effectiveHardness = malletHardness + velocity * 0.25f * velToHardness;
         effectiveHardness = std::max(0.0f, std::min(1.0f, effectiveHardness));
-
         voice.exciter.trigger(velocity, effectiveHardness, clickAmount);
 
-        // Configure envelopes
-        voice.ampEnv.setParameters(attackMs, decayMs, sustainLevel, releaseMs, isSnap);
-        // Fast auxiliary strike envelope (approx 15-40ms)
-        voice.strikeEnv.setParameters(0.5f, 25.0f + effectiveHardness * 20.0f, 0.0f, 20.0f, true);
-
-        // Update resonator
+        // 3. Update resonator
         voice.resonator.update(voice.currentFreq, resonatorDecay, material, overtoneMix, pipeBody);
     }
 
@@ -229,7 +235,7 @@ public:
                 mixedL += vL;
                 mixedR += vR;
 
-                if (!voice.ampEnv.isActive() && !voice.exciter.isPlaying())
+                if (!voice.ampEnv.isActive() && !voice.exciter.isPlaying() && !voice.resonator.hasEnergy())
                 {
                     voice.isNoteActive = false;
                 }
@@ -261,7 +267,7 @@ private:
             }
         }
 
-        // 2. Voice stealing: find the oldest or quietest voice
+        // 2. Voice stealing: find the oldest voice
         uint32_t maxAge = 0;
         int oldestIndex = 0;
         for (int i = 0; i < NUM_VOICES; ++i)
@@ -285,7 +291,7 @@ private:
     float clickAmount = 0.35f;
     float velToHardness = 0.5f;
     float resonatorDecay = 0.55f;
-    float material = 0.15f; // 0.0 = Wood, 1.0 = Glass
+    float material = 0.15f;
     float overtoneMix = 0.60f;
     float pipeBody = 0.50f;
 
@@ -294,9 +300,9 @@ private:
     float filterEnvAmount = 0.40f;
 
     float attackMs = 0.5f;
-    float decayMs = 550.0f;
+    float decayMs = 800.0f;
     float sustainLevel = 0.0f;
-    float releaseMs = 280.0f;
+    float releaseMs = 350.0f;
     bool isSnap = true;
     float glideTime = 0.0f;
 

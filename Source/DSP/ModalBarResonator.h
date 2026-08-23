@@ -12,7 +12,7 @@ struct ModalBand
     float y2 = 0.0f;
     float a1 = 0.0f;
     float a2 = 0.0f;
-    float gain = 0.0f;
+    float gain = 1.0f;
 
     void reset()
     {
@@ -31,17 +31,16 @@ struct ModalBand
         float omega = 2.0f * 3.14159265f * freq / static_cast<float>(sampleRate);
         
         // Damping factor r calculated from decay time T60
-        // T60: amplitude decays by -60dB (factor of 0.001) in decayTimeSec
-        // r^N = 0.001 => N * ln(r) = -6.9077 => ln(r) = -6.9077 / (decayTimeSec * sampleRate)
         float decaySamples = std::max(10.0f, decayTimeSec * static_cast<float>(sampleRate));
         float r = std::exp(-6.907755f / decaySamples);
-        r = std::min(0.9999f, std::max(0.0f, r));
+        r = std::min(0.99995f, std::max(0.0f, r));
 
         a1 = 2.0f * r * std::cos(omega);
         a2 = -r * r;
         
-        // Normalization gain for impulse response peak
-        gain = amplitude * (1.0f - r) * std::sin(omega);
+        // Impulse response gain normalization
+        // For an impulse excitation of amplitude 1.0, this yields clear, rich acoustic body output
+        gain = amplitude * 1.8f;
     }
 
     inline float process(float input)
@@ -50,6 +49,11 @@ struct ModalBand
         y2 = y1;
         y1 = y0;
         return y0;
+    }
+
+    bool hasEnergy() const
+    {
+        return (std::abs(y1) > 0.00002f || std::abs(y2) > 0.00002f);
     }
 };
 
@@ -77,8 +81,8 @@ public:
 
     void update(float fundamentalFreq, float decayParam, float materialParam, float overtoneMix, float pipeAmount)
     {
-        // Decay time: 0.1s to 4.5s
-        float baseDecay = 0.1f + decayParam * decayParam * 4.0f;
+        // Decay time: 0.15s to 4.5s
+        float baseDecay = 0.15f + decayParam * decayParam * 4.2f;
 
         // Material interpolation:
         // 0.0 = Deep Wooden Marimba (ratios 1.0, 4.0, 9.2, 16.0)
@@ -105,15 +109,15 @@ public:
         for (int i = 0; i < NUM_MODES; ++i)
         {
             float modeFreq = fundamentalFreq * modeRatios[i];
-            float modeDamping = 1.0f + static_cast<float>(i * i) * (0.8f - mat * 0.4f);
+            float modeDamping = 1.0f + static_cast<float>(i * i) * (0.7f - mat * 0.35f);
             float modeDecay = baseDecay / modeDamping;
 
             modes[i].setCoefficients(modeFreq, modeDecay, modeGains[i], currentSampleRate);
         }
 
         // Resonator Pipe Body (Acoustic cavity under the bar tuned to fundamental f0)
-        float pipeDecay = baseDecay * 1.3f;
-        pipeResonator.setCoefficients(fundamentalFreq, pipeDecay, pipeAmount * 0.7f, currentSampleRate);
+        float pipeDecay = baseDecay * 1.25f;
+        pipeResonator.setCoefficients(fundamentalFreq, pipeDecay, pipeAmount * 0.75f, currentSampleRate);
     }
 
     float process(float exciterSample)
@@ -128,6 +132,16 @@ public:
         sum += pipeResonator.process(exciterSample + sum * 0.15f);
 
         return sum;
+    }
+
+    bool hasEnergy() const
+    {
+        for (const auto& mode : modes)
+        {
+            if (mode.hasEnergy())
+                return true;
+        }
+        return pipeResonator.hasEnergy();
     }
 
 private:

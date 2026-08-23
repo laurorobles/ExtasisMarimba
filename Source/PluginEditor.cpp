@@ -36,9 +36,9 @@ ExtasisMarimbaAudioProcessorEditor::ExtasisMarimbaAudioProcessorEditor(ExtasisMa
     };
     addAndMakeVisible(nextPresetBtn);
 
-    // 3. Logo Trigger Button (Exact ExtasisDonker architecture)
+    // 3. Logo Trigger Button (Thread-Safe Audition)
     triggerButton.onNoteOn = [this](int midiNote, float vel) {
-        processorRef.getSynthEngine().noteOn(midiNote, vel);
+        processorRef.triggerAuditionNote(midiNote, vel);
 
         float h = 0.65f;
         float d = 0.52f;
@@ -53,7 +53,7 @@ ExtasisMarimbaAudioProcessorEditor::ExtasisMarimbaAudioProcessorEditor(ExtasisMa
     };
 
     triggerButton.onNoteOff = [this](int midiNote) {
-        processorRef.getSynthEngine().noteOff(midiNote);
+        processorRef.releaseAuditionNote(midiNote);
     };
 
     triggerButton.onStatusChange = [this](const juce::String& title, const juce::String& desc) {

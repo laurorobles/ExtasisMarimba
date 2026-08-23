@@ -2,6 +2,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "DSP/MarimbaSynthEngine.h"
 #include <functional>
+#include <atomic>
 
 class ExtasisMarimbaAudioProcessor : public juce::AudioProcessor
 {
@@ -42,6 +43,10 @@ public:
     int getPresetCount() const { return static_cast<int>(presetNames.size()); }
     juce::String getPresetTitle(int index) const;
 
+    // Audition Trigger (Thread-safe)
+    void triggerAuditionNote(int noteNumber = 60, float velocity = 1.0f);
+    void releaseAuditionNote(int noteNumber = 60);
+
     // Real-time audio stream callback for visualizer
     std::function<void(const float*, int)> onAudioBlockProcessed;
 
@@ -50,6 +55,13 @@ private:
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
     ExtasisDSP::MarimbaSynthEngine synthEngine;
+
+    // Audition Note queue
+    struct TriggerEvent { int note; float vel; bool isNoteOn; };
+    static constexpr int FIFO_SIZE = 16;
+    std::array<TriggerEvent, FIFO_SIZE> triggerFifo;
+    std::atomic<int> fifoWriteIdx { 0 };
+    std::atomic<int> fifoReadIdx { 0 };
 
     int currentPresetIndex = 0;
     std::vector<juce::String> presetNames {
