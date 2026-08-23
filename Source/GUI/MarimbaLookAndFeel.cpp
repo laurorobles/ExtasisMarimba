@@ -95,7 +95,7 @@ void MarimbaLookAndFeel::drawButtonText(juce::Graphics& g, juce::TextButton& but
                                        bool /*shouldDrawButtonAsHighlighted*/,
                                        bool /*shouldDrawButtonAsDown*/)
 {
-    g.setFont(getLabelFont(*button.findParentComponentOfClass<juce::Label>()));
+    g.setFont(juce::Font(13.0f, juce::Font::bold));
     g.setColour(button.isEnabled() ? getAmberGold() : juce::Colours::grey);
     g.drawFittedText(button.getButtonText(), button.getLocalBounds(), juce::Justification::centred, 1);
 }
