@@ -93,12 +93,16 @@ void ExtasisMarimbaAudioProcessorEditor::sliderValueChanged(juce::Slider* slider
     {
         if (pair.second.slider.get() == slider)
         {
-            display.setParameterReadout(pair.second.label->getText(), slider->getTextFromValue(slider->getValue()));
+            if (pair.second.label != nullptr)
+                display.setParameterReadout(pair.second.label->getText(), slider->getTextFromValue(slider->getValue()));
             
-            if (pair.first == "hardness" || pair.first == "decay")
+            auto itH = controls.find("hardness");
+            auto itD = controls.find("decay");
+            if (itH != controls.end() && itH->second.slider != nullptr &&
+                itD != controls.end() && itD->second.slider != nullptr)
             {
-                float h = static_cast<float>(controls["hardness"].slider->getValue());
-                float d = static_cast<float>(controls["decay"].slider->getValue());
+                float h = static_cast<float>(itH->second.slider->getValue());
+                float d = static_cast<float>(itD->second.slider->getValue());
                 display.triggerStrikeAnimation(h, d);
             }
             break;
