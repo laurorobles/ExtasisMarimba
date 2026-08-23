@@ -5,6 +5,12 @@ ExtasisMarimbaAudioProcessorEditor::ExtasisMarimbaAudioProcessorEditor(ExtasisMa
 {
     setLookAndFeel(&customLookAndFeel);
 
+    // 0. Load Embedded Logo
+    if (BinaryData::logo_pngSize > 0)
+    {
+        logoImage = juce::ImageFileFormat::loadFrom(BinaryData::logo_png, BinaryData::logo_pngSize);
+    }
+
     // 1. Display Setup & Real-Time Audio Stream
     addAndMakeVisible(display);
     processorRef.onAudioBlockProcessed = [this](const float* samples, int numSamples) {
@@ -141,6 +147,22 @@ ExtasisMarimbaAudioProcessorEditor::~ExtasisMarimbaAudioProcessorEditor()
     processorRef.onAudioBlockProcessed = nullptr;
 }
 
+void ExtasisMarimbaAudioProcessorEditor::mouseDown(const juce::MouseEvent& e)
+{
+    if (logoBounds.contains(e.getPosition()))
+    {
+        playTriggerNote();
+    }
+}
+
+void ExtasisMarimbaAudioProcessorEditor::mouseUp(const juce::MouseEvent& e)
+{
+    if (logoBounds.contains(e.getPosition()))
+    {
+        stopTriggerNote();
+    }
+}
+
 void ExtasisMarimbaAudioProcessorEditor::playTriggerNote()
 {
     processorRef.getSynthEngine().noteOn(currentTriggerNote, currentTriggerVel);
@@ -250,14 +272,27 @@ void ExtasisMarimbaAudioProcessorEditor::paint(juce::Graphics& g)
     g.setColour(ExtasisGUI::MarimbaLookAndFeel::getPanelBorder());
     g.drawHorizontalLine(44, 0.0f, (float)getWidth());
 
-    // Logo & Subtitle
-    g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 17.0f, juce::Font::bold));
+    // Draw Logo Image if available
+    int logoX = 18;
+    int logoW = 32;
+    int logoH = 32;
+    int logoY = 6;
+    logoBounds = juce::Rectangle<int>(logoX, logoY, logoW + 180, logoH);
+
+    if (logoImage.isValid())
+    {
+        g.drawImageWithin(logoImage, logoX, logoY, logoW, logoH, juce::RectanglePlacement::centred | juce::RectanglePlacement::onlyReduceInSize);
+        logoX += logoW + 8;
+    }
+
+    // Logo & Subtitle Text
+    g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 16.5f, juce::Font::bold));
     g.setColour(ExtasisGUI::MarimbaLookAndFeel::getAmberGold());
-    g.drawText("EXTASIS MARIMBA", 20, 0, 200, 44, juce::Justification::centredLeft);
+    g.drawText("EXTASIS MARIMBA", logoX, 0, 170, 44, juce::Justification::centredLeft);
 
     g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 10.5f, juce::Font::plain));
     g.setColour(juce::Colour(0xff8e96a4));
-    g.drawText("- PHYSICAL MODELING SYNTH // MICROFREAK MODAL ENGINE", 225, 0, 450, 44, juce::Justification::centredLeft);
+    g.drawText("- PHYSICAL MODELING SYNTH // MICROFREAK MODAL ENGINE", logoX + 175, 0, 450, 44, juce::Justification::centredLeft);
 
     // Amber horizontal strip
     g.setColour(ExtasisGUI::MarimbaLookAndFeel::getAmberGold());

@@ -7,7 +7,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # JUCE integration
 add_subdirectory(/Users/babyonk1/.gemini/antigravity/scratch/JUCE ${CMAKE_BINARY_DIR}/JUCE)
 
+juce_add_binary_data(ExtasisMarimbaData
+    SOURCES
+        assets/logo.png
+)
+
 juce_add_plugin(ExtasisMarimba
+    COMPANY_NAME "Extasis Records"
+    BUNDLE_ID "com.laurorobles.ExtasisMarimba"
     PLUGIN_MANUFACTURER_CODE Exta
     PLUGIN_CODE Emrb
     FORMATS VST3 AU Standalone
@@ -45,6 +52,7 @@ target_compile_definitions(ExtasisMarimba PUBLIC
 )
 
 target_link_libraries(ExtasisMarimba PRIVATE
+    ExtasisMarimbaData
     juce::juce_audio_utils
     juce::juce_audio_processors
     juce::juce_dsp
