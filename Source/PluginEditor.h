@@ -30,6 +30,16 @@ private:
     juce::TextButton prevPresetBtn { "<" };
     juce::TextButton nextPresetBtn { ">" };
 
+    // Trigger & Test Note Controls
+    juce::TextButton triggerButton { "⚡ TRIGGER" };
+    juce::ComboBox triggerNoteBox;
+    juce::TextButton noteDownBtn { "◀" };
+    juce::TextButton noteUpBtn { "▶" };
+    juce::ComboBox triggerVelBox;
+
+    int currentTriggerNote = 60; // C4
+    float currentTriggerVel = 1.0f;
+
     // Knobs & Labels
     struct KnobControl
     {
@@ -41,6 +51,8 @@ private:
     std::map<juce::String, KnobControl> controls;
 
     void createKnob(const juce::String& paramId, const juce::String& labelText, const juce::String& suffix = "");
+    void playTriggerNote();
+    void stopTriggerNote();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ExtasisMarimbaAudioProcessorEditor)
 };

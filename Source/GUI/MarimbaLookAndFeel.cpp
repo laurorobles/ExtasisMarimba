@@ -77,6 +77,24 @@ void MarimbaLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& b
                                              bool shouldDrawButtonAsDown)
 {
     auto bounds = button.getLocalBounds().toFloat().reduced(1.0f);
+    bool isTrigger = button.getButtonText().contains("TRIGGER");
+
+    if (isTrigger)
+    {
+        juce::Colour bg = shouldDrawButtonAsDown ? getAmberGold().darker(0.2f) : (shouldDrawButtonAsHighlighted ? juce::Colour(0xff382e1c) : juce::Colour(0xff221b10));
+        g.setColour(bg);
+        g.fillRoundedRectangle(bounds, 5.0f);
+
+        // Amber Glowing Border
+        g.setColour(shouldDrawButtonAsDown ? getBrightAmber() : (shouldDrawButtonAsHighlighted ? getBrightAmber().withAlpha(0.9f) : getAmberGold().withAlpha(0.6f)));
+        g.drawRoundedRectangle(bounds, 5.0f, shouldDrawButtonAsDown ? 2.0f : 1.2f);
+
+        // Top Highlight Bevel
+        g.setColour(juce::Colour(0x30ffffff));
+        g.drawHorizontalLine(static_cast<int>(bounds.getY() + 2.0f), bounds.getX() + 4.0f, bounds.getRight() - 4.0f);
+        return;
+    }
+
     auto baseColor = backgroundColour.isOpaque() ? backgroundColour : getPanelBackground();
 
     if (shouldDrawButtonAsDown)
@@ -87,7 +105,7 @@ void MarimbaLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& b
     g.setColour(baseColor);
     g.fillRoundedRectangle(bounds, 4.0f);
 
-    g.setColour(getPanelBorder());
+    g.setColour(shouldDrawButtonAsHighlighted ? getAmberGold().withAlpha(0.7f) : getPanelBorder());
     g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
 }
 
