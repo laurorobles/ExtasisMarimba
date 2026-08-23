@@ -45,11 +45,20 @@ ExtasisMarimbaAudioProcessorEditor::ExtasisMarimbaAudioProcessorEditor(ExtasisMa
                 auto name = alert->getTextEditorContents("presetName").trim();
                 if (name.isNotEmpty())
                 {
-                    processorRef.saveUserPreset(name);
-                    refreshPresetList();
-                    presetBox.setText("[User] " + name, juce::dontSendNotification);
-                    display.setPatchName("[User] " + name);
-                    display.setParameterReadout("PRESET SAVED", name);
+                    if (processorRef.saveUserPreset(name))
+                    {
+                        refreshPresetList();
+                        auto names = processorRef.getAllPresetNames();
+                        for (int i = 0; i < names.size(); ++i)
+                        {
+                            if (names[i].contains(name))
+                            {
+                                presetBox.setSelectedId(i + 1, juce::sendNotification);
+                                break;
+                            }
+                        }
+                        display.setParameterReadout("PRESET SAVED", name.toUpperCase());
+                    }
                 }
             }
             delete alert;
@@ -82,7 +91,11 @@ ExtasisMarimbaAudioProcessorEditor::ExtasisMarimbaAudioProcessorEditor(ExtasisMa
     };
     addAndMakeVisible(triggerButton);
 
-    // 4. License Badge & Overlay
+    // 4. Header Links & License Badge
+    bandcampLinkBtn.setFont(juce::FontOptions(10.0f, juce::Font::bold), false, juce::Justification::centredRight);
+    bandcampLinkBtn.setColour(juce::HyperlinkButton::textColourId, ExtasisGUI::MarimbaLookAndFeel::getAmberGold().withAlpha(0.95f));
+    addAndMakeVisible(bandcampLinkBtn);
+
     addAndMakeVisible(licenseBadgeButton);
     licenseBadgeButton.onClick = [this]() {
         showActivationModal = true;
@@ -120,30 +133,30 @@ ExtasisMarimbaAudioProcessorEditor::ExtasisMarimbaAudioProcessorEditor(ExtasisMa
 
     updateLicenseState();
 
-    // 5. Create all Rotary Controls across 4 Sections
+    // 5. Create all Knobs with Live Value Labels
     // Section 1: Mallet & Attack
-    createKnob("hardness", "HARDNESS", "%");
-    createKnob("noise", "RUBBER NOISE", "%");
-    createKnob("click", "CLICK / SNAP", "%");
-    createKnob("attack", "ATTACK", "ms");
+    createKnob("hardness", "HARDNESS");
+    createKnob("noise", "RUBBER NOISE");
+    createKnob("click", "CLICK / SNAP");
+    createKnob("attack", "ATTACK");
 
     // Section 2: Wood & Modal FM
-    createKnob("decay", "BAR DECAY", "%");
-    createKnob("material", "MATERIAL", "%");
-    createKnob("overtones", "OVERTONES", "%");
-    createKnob("organic", "ORGANIC DRIFT", "%");
+    createKnob("decay", "BAR DECAY");
+    createKnob("material", "MATERIAL");
+    createKnob("overtones", "OVERTONES");
+    createKnob("organic", "PUEBLO DRIFT");
 
     // Section 3: Resonator & Buzz (La Cachimba)
-    createKnob("tube", "TUBE CAVITY", "%");
-    createKnob("buzz", "CACHIMBA BUZZ", "%");
-    createKnob("buzzVel", "BUZZ DYNAMICS", "%");
-    createKnob("cutoff", "SEM FILTER", "Hz");
+    createKnob("tube", "TUBE CAVITY");
+    createKnob("buzz", "CACHIMBA BUZZ");
+    createKnob("buzzVel", "BUZZ DYNAMICS");
+    createKnob("cutoff", "SEM FILTER");
 
     // Section 4: Master & FX
-    createKnob("spread", "SPREAD", "%");
-    createKnob("drive", "WARM DRIVE", "%");
-    createKnob("ambience", "AMBIENCE", "%");
-    createKnob("volume", "MASTER VOL", "");
+    createKnob("spread", "SPREAD");
+    createKnob("drive", "WARM DRIVE");
+    createKnob("ambience", "AMBIENCE");
+    createKnob("volume", "MASTER VOL");
 
     display.setPatchName(presetBox.getText());
 
@@ -196,21 +209,52 @@ void ExtasisMarimbaAudioProcessorEditor::timerCallback()
     }
 }
 
-void ExtasisMarimbaAudioProcessorEditor::createKnob(const juce::String& paramId, const juce::String& labelText, const juce::String& suffix)
+juce::String ExtasisMarimbaAudioProcessorEditor::getFormattedValueText(const juce::String& paramId, double val)
+{
+    if (paramId == "attack")
+        return juce::String(val, 1) + " ms";
+    if (paramId == "cutoff")
+        return val >= 1000.0 ? juce::String(val * 0.001, 1) + " kHz" : juce::String((int)val) + " Hz";
+    if (paramId == "volume")
+        return juce::String((int)(val * 100)) + " %";
+    if (paramId == "material")
+    {
+        if (val < 0.25) return "Hormiguillo " + juce::String((int)(val * 100)) + "%";
+        if (val < 0.70) return "Balafon " + juce::String((int)(val * 100)) + "%";
+        return "Glass " + juce::String((int)(val * 100)) + "%";
+    }
+
+    return juce::String((int)(val * 100)) + " %";
+}
+
+void ExtasisMarimbaAudioProcessorEditor::createKnob(const juce::String& paramId, const juce::String& labelText)
 {
     auto& ctrl = controls[paramId];
 
-    ctrl.slider = std::make_unique<juce::Slider>(juce::Slider::RotaryHorizontalVerticalDrag, juce::Slider::TextBoxBelow);
-    ctrl.slider->setTextValueSuffix(suffix.isEmpty() ? "" : " " + suffix);
+    ctrl.slider = std::make_unique<juce::Slider>(juce::Slider::RotaryVerticalDrag, juce::Slider::NoTextBox);
     ctrl.slider->addListener(this);
+    ctrl.slider->setName(paramId);
     addAndMakeVisible(*ctrl.slider);
 
     ctrl.label = std::make_unique<juce::Label>("", labelText);
     ctrl.label->setJustificationType(juce::Justification::centred);
+    ctrl.label->setFont(juce::FontOptions(9.5f, juce::Font::bold));
+    ctrl.label->setColour(juce::Label::textColourId, juce::Colour(0xffc8cfdc));
     addAndMakeVisible(*ctrl.label);
+
+    ctrl.valueLabel = std::make_unique<juce::Label>("", getFormattedValueText(paramId, 0.0));
+    ctrl.valueLabel->setJustificationType(juce::Justification::centred);
+    ctrl.valueLabel->setFont(juce::FontOptions(9.0f, juce::Font::bold));
+    ctrl.valueLabel->setColour(juce::Label::textColourId, ExtasisGUI::MarimbaLookAndFeel::getAmberGold());
+    addAndMakeVisible(*ctrl.valueLabel);
 
     ctrl.attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         processorRef.getAPVTS(), paramId, *ctrl.slider);
+
+    if (auto* p = processorRef.getAPVTS().getRawParameterValue(paramId))
+    {
+        ctrl.valueLabel->setText(getFormattedValueText(paramId, *p), juce::dontSendNotification);
+    }
 }
 
 void ExtasisMarimbaAudioProcessorEditor::sliderValueChanged(juce::Slider* slider)
@@ -222,6 +266,9 @@ void ExtasisMarimbaAudioProcessorEditor::sliderValueChanged(juce::Slider* slider
             auto paramId = pair.first;
             auto val = slider->getValue();
 
+            if (pair.second.valueLabel != nullptr)
+                pair.second.valueLabel->setText(getFormattedValueText(paramId, val), juce::dontSendNotification);
+
             if (paramId == "noise")
                 display.setParameterReadout("RUBBER MALLET NOISE", juce::String((int)(val * 100)) + "% BANDPASS 3.5kHz");
             else if (paramId == "buzz")
@@ -232,8 +279,10 @@ void ExtasisMarimbaAudioProcessorEditor::sliderValueChanged(juce::Slider* slider
                 display.setParameterReadout("MARIMBA DE PUEBLO", juce::String((int)(val * 100)) + "% ARTISANAL IMPERFECTION");
             else if (paramId == "tube")
                 display.setParameterReadout("RESONATOR TUBE", juce::String((int)(val * 100)) + "% ACOUSTIC BEATING");
+            else if (paramId == "material")
+                display.setParameterReadout("BAR MATERIAL", val < 0.25 ? "HORMIGUILLO WOOD" : (val < 0.7 ? "AFRICAN BALAFON" : "CRYSTAL GLASS"));
             else if (pair.second.label != nullptr)
-                display.setParameterReadout(pair.second.label->getText(), slider->getTextFromValue(val));
+                display.setParameterReadout(pair.second.label->getText(), getFormattedValueText(paramId, val));
             
             auto itH = controls.find("hardness");
             auto itD = controls.find("decay");
@@ -256,6 +305,14 @@ void ExtasisMarimbaAudioProcessorEditor::comboBoxChanged(juce::ComboBox* comboBo
         int idx = presetBox.getSelectedId() - 1;
         processorRef.setCurrentProgram(idx);
         display.setPatchName(presetBox.getText());
+
+        for (auto& pair : controls)
+        {
+            if (pair.second.slider != nullptr && pair.second.valueLabel != nullptr)
+            {
+                pair.second.valueLabel->setText(getFormattedValueText(pair.first, pair.second.slider->getValue()), juce::dontSendNotification);
+            }
+        }
     }
 }
 
@@ -263,14 +320,14 @@ void ExtasisMarimbaAudioProcessorEditor::paint(juce::Graphics& g)
 {
     auto bounds = getLocalBounds().toFloat();
 
-    // 1. Chassis: Dark Brushed Metal
+    // 1. Chassis: Dark Brushed Obsidian Metal
     g.fillAll(ExtasisGUI::MarimbaLookAndFeel::getBackgroundDark());
 
     // Bevel borders
     g.setColour(juce::Colour(0xff2a2d33));
     g.drawRect(bounds.reduced(0.5f), 1.0f);
 
-    // 2. Top Header Bar
+    // 2. Top Header Bar (Chassis Header)
     auto topBar = bounds.removeFromTop(44.0f);
     g.setColour(ExtasisGUI::MarimbaLookAndFeel::getPanelBackground());
     g.fillRect(topBar);
@@ -278,29 +335,42 @@ void ExtasisMarimbaAudioProcessorEditor::paint(juce::Graphics& g)
     g.setColour(ExtasisGUI::MarimbaLookAndFeel::getPanelBorder());
     g.drawHorizontalLine(44, 0.0f, (float)getWidth());
 
-    // Header Title & Brand Subtitle
+    // Header Title & Brand Subtitle (Matching ExtasisDonker style)
     g.setFont(juce::FontOptions(17.0f, juce::Font::bold));
     g.setColour(ExtasisGUI::MarimbaLookAndFeel::getAmberGold());
-    g.drawText("EXTASIS MARIMBA", 20, 0, 190, 44, juce::Justification::centredLeft);
+    g.drawText("EXTASIS MARIMBA", 20, 6, 185, 20, juce::Justification::left);
 
-    g.setFont(juce::FontOptions(10.5f, juce::Font::plain));
+    g.setFont(juce::FontOptions(9.5f, juce::Font::bold));
     g.setColour(juce::Colour(0xff8e96a4));
-    g.drawText("- MEXICAN PHYSICAL-FM SYNTHESIZER", 215, 0, 360, 44, juce::Justification::centredLeft);
+    g.drawText("- MEXICAN PHYSICAL-FM SYNTHESIZER // ACOUSTIC CACHIMBA & MODAL RESONANCE", 208, 8, 480, 18, juce::Justification::left);
 
-    // Amber horizontal strip
+    // coded by @laurorobles in tiny font right below the title
+    g.setFont(juce::FontOptions(8.5f, juce::Font::bold));
+    g.setColour(juce::Colour(0xff707a8a));
+    g.drawText("coded by @laurorobles // Extasis Records", 22, 26, 260, 14, juce::Justification::left);
+
+    // Right Decal: |||||||| MODAL-FM DSP
+    g.setFont(juce::FontOptions(9.5f, juce::Font::bold));
+    g.setColour(ExtasisGUI::MarimbaLookAndFeel::getAmberGold().withAlpha(0.85f));
+    g.drawText("|||||||| MODAL-FM DSP // 24-BIT 96kHz", getWidth() - 435, 26, 230, 14, juce::Justification::right);
+
+    // Amber horizontal glowing accent strip
     g.setColour(ExtasisGUI::MarimbaLookAndFeel::getAmberGold());
     g.fillRect(20, 42, getWidth() - 40, 2);
 
-    // 3. Modular Sections Framing
+    // 3. Modular Sections Framing with Hormiguillo Rosewood Accents
     auto drawSectionBox = [&g](juce::Rectangle<float> r, const juce::String& title) {
-        g.setColour(juce::Colour(0xff1b1e22));
+        // Outer dark panel
+        g.setColour(juce::Colour(0xff181b20));
         g.fillRoundedRectangle(r, 5.0f);
+
+        // Subtle wood-accent border
         g.setColour(juce::Colour(0xff333842));
         g.drawRoundedRectangle(r, 5.0f, 1.0f);
 
         // Section Title Header
         g.setColour(ExtasisGUI::MarimbaLookAndFeel::getAmberGold());
-        g.setFont(juce::FontOptions(10.5f, juce::Font::bold));
+        g.setFont(juce::FontOptions(10.0f, juce::Font::bold));
         g.drawText(title, (int)r.getX() + 10, (int)r.getY() + 4, (int)r.getWidth() - 20, 16, juce::Justification::left);
 
         g.setColour(juce::Colour(0x33ffa834));
@@ -316,8 +386,11 @@ void ExtasisMarimbaAudioProcessorEditor::paint(juce::Graphics& g)
 
 void ExtasisMarimbaAudioProcessorEditor::resized()
 {
+    // Bandcamp Link in Header
+    bandcampLinkBtn.setBounds(getWidth() - 325, 8, 205, 18);
+
     // Header License Badge
-    licenseBadgeButton.setBounds(getWidth() - 110, 10, 90, 24);
+    licenseBadgeButton.setBounds(getWidth() - 110, 8, 90, 24);
 
     // Display on top left (x=20, y=52, w=570, h=168)
     display.setBounds(20, 52, 570, 168);
@@ -333,37 +406,38 @@ void ExtasisMarimbaAudioProcessorEditor::resized()
     triggerButton.setBounds(606, 88, 294, 132);
 
     // Knobs Layout inside the 4 sections
-    auto placeKnob = [this](const juce::String& id, int x, int y, int w = 82, int h = 88) {
+    auto placeKnob = [this](const juce::String& id, int x, int y, int w = 84, int h = 88) {
         if (controls.find(id) != controls.end())
         {
-            controls[id].slider->setBounds(x, y + 16, w, h - 16);
-            controls[id].label->setBounds(x - 2, y, w + 4, 16);
+            controls[id].label->setBounds(x - 2, y, w + 4, 14);
+            controls[id].slider->setBounds(x, y + 14, w, h - 28);
+            controls[id].valueLabel->setBounds(x - 2, y + h - 14, w + 4, 14);
         }
     };
 
     // Section 1: Mallet & Attack (x=20)
-    placeKnob("hardness", 30, 260, 84, 88);
-    placeKnob("noise", 130, 260, 84, 88);
-    placeKnob("click", 30, 375, 84, 88);
-    placeKnob("attack", 130, 375, 84, 88);
+    placeKnob("hardness", 30, 258, 84, 94);
+    placeKnob("noise", 130, 258, 84, 94);
+    placeKnob("click", 30, 372, 84, 94);
+    placeKnob("attack", 130, 372, 84, 94);
 
     // Section 2: Wood & Modal FM (x=240)
-    placeKnob("decay", 250, 260, 84, 88);
-    placeKnob("material", 350, 260, 84, 88);
-    placeKnob("overtones", 250, 375, 84, 88);
-    placeKnob("organic", 350, 375, 84, 88);
+    placeKnob("decay", 250, 258, 84, 94);
+    placeKnob("material", 350, 258, 84, 94);
+    placeKnob("overtones", 250, 372, 84, 94);
+    placeKnob("organic", 350, 372, 84, 94);
 
     // Section 3: Resonator & Buzz / La Cachimba (x=460)
-    placeKnob("tube", 472, 260, 84, 88);
-    placeKnob("buzz", 578, 260, 84, 88);
-    placeKnob("buzzVel", 472, 375, 84, 88);
-    placeKnob("cutoff", 578, 375, 84, 88);
+    placeKnob("tube", 472, 258, 84, 94);
+    placeKnob("buzz", 578, 258, 84, 94);
+    placeKnob("buzzVel", 472, 372, 84, 94);
+    placeKnob("cutoff", 578, 372, 84, 94);
 
     // Section 4: Master & FX (x=690)
-    placeKnob("spread", 702, 260, 84, 88);
-    placeKnob("drive", 802, 260, 84, 88);
-    placeKnob("ambience", 702, 375, 84, 88);
-    placeKnob("volume", 802, 375, 84, 88);
+    placeKnob("spread", 702, 258, 84, 94);
+    placeKnob("drive", 802, 258, 84, 94);
+    placeKnob("ambience", 702, 372, 84, 94);
+    placeKnob("volume", 802, 372, 84, 94);
 
     // Overlay full bounds
     activationOverlay.setBounds(getLocalBounds());

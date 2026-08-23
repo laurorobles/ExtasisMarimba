@@ -153,26 +153,29 @@ private:
     // Logo Trigger Pad
     ExtasisGUI::MarimbaTriggerButton triggerButton;
 
-    // License Badge & Modal
-    bool isActivated = false;
-    bool showActivationModal = false;
+    // Header Links & License
+    juce::HyperlinkButton bandcampLinkBtn { "extasisrecords.bandcamp.com", juce::URL("https://extasisrecords.bandcamp.com") };
     juce::TextButton licenseBadgeButton;
     ActivationOverlayComponent activationOverlay;
+    bool isActivated = false;
+    bool showActivationModal = false;
 
     void refreshPresetList();
     void updateLicenseState();
+    juce::String getFormattedValueText(const juce::String& paramId, double val);
 
     // Knobs & Labels
     struct KnobControl
     {
         std::unique_ptr<juce::Slider> slider;
         std::unique_ptr<juce::Label> label;
+        std::unique_ptr<juce::Label> valueLabel;
         std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> attachment;
     };
 
     std::map<juce::String, KnobControl> controls;
 
-    void createKnob(const juce::String& paramId, const juce::String& labelText, const juce::String& suffix = "");
+    void createKnob(const juce::String& paramId, const juce::String& labelText);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ExtasisMarimbaAudioProcessorEditor)
 };
