@@ -103,7 +103,7 @@ void ExtasisMarimbaAudioProcessor::loadPreset(int presetIndex)
 
     switch (presetIndex)
     {
-        case 0: // MicroFreak Marimbita
+        case 0: // Concert Marimba
             setVal("hardness", 0.65f);
             setVal("click", 0.35f);
             setVal("decay", 0.52f);
@@ -122,7 +122,7 @@ void ExtasisMarimbaAudioProcessor::loadPreset(int presetIndex)
             setVal("ambience", 0.20f);
             setVal("volume", 0.85f);
             break;
-        case 1: // Concert Wooden Marimba
+        case 1: // Wooden Rosewood Bar
             setVal("hardness", 0.45f);
             setVal("click", 0.20f);
             setVal("decay", 0.70f);

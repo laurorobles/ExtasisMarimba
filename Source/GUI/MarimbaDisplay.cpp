@@ -94,8 +94,8 @@ void MarimbaDisplay::timerCallback()
         readoutTimeoutCounter--;
         if (readoutTimeoutCounter == 0)
         {
-            currentParamName = "MODAL SYNTHESIS ACTIVE";
-            currentValueText = "MARIMBA ENGINE READY";
+            currentParamName = "MODAL PHYSICAL SYNTH";
+            currentValueText = "16-VOICE POLYPHONY";
         }
     }
 
@@ -136,7 +136,7 @@ void MarimbaDisplay::paint(juce::Graphics& g)
 
     g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 9.5f, juce::Font::plain));
     g.setColour(juce::Colour(0xff7a95aa));
-    g.drawFittedText("MODAL PHYSICAL SYNTH // 16-VOICE", headerArea.toNearestInt(), juce::Justification::right, 1);
+    g.drawFittedText("MODAL PHYSICAL SYNTHESIS // EXTASIS DSP", headerArea.toNearestInt(), juce::Justification::right, 1);
 
     // Divider line
     g.setColour(juce::Colour(0x2838e8d8));

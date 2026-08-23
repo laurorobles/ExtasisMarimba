@@ -53,8 +53,8 @@ private:
 
     int currentPresetIndex = 0;
     std::vector<juce::String> presetNames {
-        "01: MicroFreak Marimbita",
-        "02: Concert Wooden Marimba",
+        "01: Concert Marimba",
+        "02: Wooden Rosewood Bar",
         "03: African Balafon / Kalimba",
         "04: Glass & Metal Bar",
         "05: Plucked Mallet Synth"
