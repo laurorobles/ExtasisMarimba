@@ -4,10 +4,10 @@
 class LicenseManager
 {
 public:
-    static constexpr uint64_t SALT_1 = 0x8C3F5E7B1A9D4E20ULL;
-    static constexpr uint64_t SALT_2 = 0x5D9B2A1E7F8C4362ULL;
+    static constexpr uint64_t SALT_1 = 0xB894E28F4C6D39D7ULL;
+    static constexpr uint64_t SALT_2 = 0x7F5D91C32E98E46BULL;
 
-    // Returns the license file path in AppData / Application Support
+    // Returns the license file path in AppData/Application Support
     static juce::File getLicenseFile()
     {
 #if JUCE_MAC
@@ -48,7 +48,7 @@ public:
         uint64_t seed = ((uint64_t)val1 << 32) | val1;
         uint32_t expected2 = (uint32_t)(((seed ^ SALT_1) * 0x45D9F3BULL) >> 16) & 0xFFFF;
         uint32_t expected3 = (uint32_t)((((seed << 13) | (seed >> 19)) ^ SALT_2) * 0x27D4EB2DULL >> 16) & 0xFFFF;
-        uint32_t expected4 = ((val1 ^ expected2 ^ expected3 ^ 0xBEEF) * 0x119DE1ULL) & 0xFFFF;
+        uint32_t expected4 = ((val1 ^ expected2 ^ expected3 ^ 0xCAFE) * 0x119DE1ULL) & 0xFFFF;
 
         return (val2 == expected2 && val3 == expected3 && val4 == expected4);
     }

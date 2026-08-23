@@ -11,18 +11,15 @@ ExtasisMarimbaAudioProcessorEditor::ExtasisMarimbaAudioProcessorEditor(ExtasisMa
         display.pushAudioSamples(samples, numSamples);
     };
 
-    // 2. Preset Selector
-    for (int i = 0; i < processorRef.getPresetCount(); ++i)
-    {
-        presetBox.addItem(processorRef.getPresetTitle(i), i + 1);
-    }
+    // 2. Preset Selector & Management
+    refreshPresetList();
     presetBox.setSelectedId(processorRef.getCurrentProgram() + 1, juce::dontSendNotification);
     presetBox.addListener(this);
     addAndMakeVisible(presetBox);
 
     prevPresetBtn.onClick = [this]() {
         int cur = presetBox.getSelectedId() - 1;
-        int count = processorRef.getPresetCount();
+        int count = processorRef.getNumPrograms();
         int next = (cur - 1 + count) % count;
         presetBox.setSelectedId(next + 1, juce::sendNotification);
     };
@@ -30,11 +27,35 @@ ExtasisMarimbaAudioProcessorEditor::ExtasisMarimbaAudioProcessorEditor(ExtasisMa
 
     nextPresetBtn.onClick = [this]() {
         int cur = presetBox.getSelectedId() - 1;
-        int count = processorRef.getPresetCount();
+        int count = processorRef.getNumPrograms();
         int next = (cur + 1) % count;
         presetBox.setSelectedId(next + 1, juce::sendNotification);
     };
     addAndMakeVisible(nextPresetBtn);
+
+    savePresetBtn.onClick = [this]() {
+        auto* alert = new juce::AlertWindow("SAVE USER PRESET", "Enter a name for your marimba preset:", juce::AlertWindow::NoIcon);
+        alert->addTextEditor("presetName", "My Custom Marimba");
+        alert->addButton("SAVE", 1, juce::KeyPress(juce::KeyPress::returnKey));
+        alert->addButton("CANCEL", 0, juce::KeyPress(juce::KeyPress::escapeKey));
+
+        alert->enterModalState(true, juce::ModalCallbackFunction::create([this, alert](int result) {
+            if (result == 1)
+            {
+                auto name = alert->getTextEditorContents("presetName").trim();
+                if (name.isNotEmpty())
+                {
+                    processorRef.saveUserPreset(name);
+                    refreshPresetList();
+                    presetBox.setText("[User] " + name, juce::dontSendNotification);
+                    display.setPatchName("[User] " + name);
+                    display.setParameterReadout("PRESET SAVED", name);
+                }
+            }
+            delete alert;
+        }));
+    };
+    addAndMakeVisible(savePresetBtn);
 
     // 3. Logo Trigger Button (Thread-Safe Audition)
     triggerButton.onNoteOn = [this](int midiNote, float vel) {
@@ -61,7 +82,45 @@ ExtasisMarimbaAudioProcessorEditor::ExtasisMarimbaAudioProcessorEditor(ExtasisMa
     };
     addAndMakeVisible(triggerButton);
 
-    // 4. Create all Rotary Controls across 4 Sections
+    // 4. License Badge & Overlay
+    addAndMakeVisible(licenseBadgeButton);
+    licenseBadgeButton.onClick = [this]() {
+        showActivationModal = true;
+        activationOverlay.setVisible(true);
+        activationOverlay.isExpired = processorRef.isDemoExpired();
+        activationOverlay.resized();
+        activationOverlay.repaint();
+    };
+
+    addChildComponent(activationOverlay);
+    activationOverlay.onActivate = [this](const juce::String& key) {
+        if (LicenseManager::validateSerial(key))
+        {
+            LicenseManager::saveLicense(key);
+            processorRef.checkLicenseState();
+            updateLicenseState();
+            activationOverlay.statusLabel.setText("LICENSE ACTIVATED SUCCESSFULLY!", juce::dontSendNotification);
+            activationOverlay.statusLabel.setColour(juce::Label::textColourId, juce::Colour(0xff2ecc71));
+            juce::Timer::callAfterDelay(1200, [this]() {
+                activationOverlay.setVisible(false);
+                showActivationModal = false;
+            });
+        }
+        else
+        {
+            activationOverlay.statusLabel.setText("INVALID SERIAL KEY. PLEASE TRY AGAIN.", juce::dontSendNotification);
+            activationOverlay.statusLabel.setColour(juce::Label::textColourId, juce::Colour(0xffff4757));
+        }
+    };
+
+    activationOverlay.onContinueDemo = [this]() {
+        activationOverlay.setVisible(false);
+        showActivationModal = false;
+    };
+
+    updateLicenseState();
+
+    // 5. Create all Rotary Controls across 4 Sections
     // Section 1: Mallet & Attack
     createKnob("hardness", "HARDNESS", "%");
     createKnob("noise", "RUBBER NOISE", "%");
@@ -89,12 +148,52 @@ ExtasisMarimbaAudioProcessorEditor::ExtasisMarimbaAudioProcessorEditor(ExtasisMa
     display.setPatchName(presetBox.getText());
 
     setSize(920, 520);
+    startTimerHz(4);
 }
 
 ExtasisMarimbaAudioProcessorEditor::~ExtasisMarimbaAudioProcessorEditor()
 {
+    stopTimer();
     setLookAndFeel(nullptr);
     processorRef.onAudioBlockProcessed = nullptr;
+}
+
+void ExtasisMarimbaAudioProcessorEditor::refreshPresetList()
+{
+    presetBox.clear(juce::dontSendNotification);
+    auto allNames = processorRef.getAllPresetNames();
+    for (int i = 0; i < allNames.size(); ++i)
+    {
+        presetBox.addItem(allNames[i], i + 1);
+    }
+}
+
+void ExtasisMarimbaAudioProcessorEditor::updateLicenseState()
+{
+    isActivated = processorRef.isLicensed();
+    if (isActivated)
+    {
+        licenseBadgeButton.setButtonText("LICENSED");
+        licenseBadgeButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xff27ae60));
+        licenseBadgeButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    }
+    else
+    {
+        licenseBadgeButton.setButtonText("DEMO");
+        licenseBadgeButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xffe67e22));
+        licenseBadgeButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    }
+}
+
+void ExtasisMarimbaAudioProcessorEditor::timerCallback()
+{
+    if (!processorRef.isLicensed() && processorRef.isDemoExpired() && !activationOverlay.isVisible())
+    {
+        activationOverlay.isExpired = true;
+        activationOverlay.setVisible(true);
+        activationOverlay.resized();
+        activationOverlay.repaint();
+    }
 }
 
 void ExtasisMarimbaAudioProcessorEditor::createKnob(const juce::String& paramId, const juce::String& labelText, const juce::String& suffix)
@@ -180,11 +279,11 @@ void ExtasisMarimbaAudioProcessorEditor::paint(juce::Graphics& g)
     g.drawHorizontalLine(44, 0.0f, (float)getWidth());
 
     // Header Title & Brand Subtitle
-    g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 17.0f, juce::Font::bold));
+    g.setFont(juce::FontOptions(17.0f, juce::Font::bold));
     g.setColour(ExtasisGUI::MarimbaLookAndFeel::getAmberGold());
     g.drawText("EXTASIS MARIMBA", 20, 0, 190, 44, juce::Justification::centredLeft);
 
-    g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 10.5f, juce::Font::plain));
+    g.setFont(juce::FontOptions(10.5f, juce::Font::plain));
     g.setColour(juce::Colour(0xff8e96a4));
     g.drawText("- MEXICAN PHYSICAL-FM SYNTHESIZER", 215, 0, 360, 44, juce::Justification::centredLeft);
 
@@ -201,7 +300,7 @@ void ExtasisMarimbaAudioProcessorEditor::paint(juce::Graphics& g)
 
         // Section Title Header
         g.setColour(ExtasisGUI::MarimbaLookAndFeel::getAmberGold());
-        g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 10.5f, juce::Font::bold));
+        g.setFont(juce::FontOptions(10.5f, juce::Font::bold));
         g.drawText(title, (int)r.getX() + 10, (int)r.getY() + 4, (int)r.getWidth() - 20, 16, juce::Justification::left);
 
         g.setColour(juce::Colour(0x33ffa834));
@@ -217,19 +316,23 @@ void ExtasisMarimbaAudioProcessorEditor::paint(juce::Graphics& g)
 
 void ExtasisMarimbaAudioProcessorEditor::resized()
 {
+    // Header License Badge
+    licenseBadgeButton.setBounds(getWidth() - 110, 10, 90, 24);
+
     // Display on top left (x=20, y=52, w=570, h=168)
     display.setBounds(20, 52, 570, 168);
 
     // Preset & Trigger Right Module (x=606, y=52, w=294, h=168)
-    // Row 1: Preset dropdown + Prev/Next
-    presetBox.setBounds(606, 52, 218, 30);
-    prevPresetBtn.setBounds(830, 52, 32, 30);
-    nextPresetBtn.setBounds(868, 52, 32, 30);
+    // Row 1: Preset dropdown + Prev/Next + Save
+    presetBox.setBounds(606, 52, 172, 30);
+    prevPresetBtn.setBounds(782, 52, 28, 30);
+    nextPresetBtn.setBounds(814, 52, 28, 30);
+    savePresetBtn.setBounds(846, 52, 54, 30);
 
     // Row 2: Trigger Pad with Logo
     triggerButton.setBounds(606, 88, 294, 132);
 
-    // Knobs Layout inside the 4 sections (2x2 grid per section)
+    // Knobs Layout inside the 4 sections
     auto placeKnob = [this](const juce::String& id, int x, int y, int w = 82, int h = 88) {
         if (controls.find(id) != controls.end())
         {
@@ -261,4 +364,7 @@ void ExtasisMarimbaAudioProcessorEditor::resized()
     placeKnob("drive", 802, 260, 84, 88);
     placeKnob("ambience", 702, 375, 84, 88);
     placeKnob("volume", 802, 375, 84, 88);
+
+    // Overlay full bounds
+    activationOverlay.setBounds(getLocalBounds());
 }
