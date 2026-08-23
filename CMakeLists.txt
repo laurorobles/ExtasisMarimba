@@ -19,6 +19,8 @@ juce_add_plugin(ExtasisMarimba
     PLUGIN_CODE Emrb
     FORMATS VST3 AU Standalone
     PRODUCT_NAME "ExtasisMarimba"
+    ICON_BIG assets/logo.png
+    ICON_SMALL assets/logo.png
     IS_SYNTH TRUE
     NEEDS_MIDI_INPUT TRUE
     NEEDS_MIDI_OUTPUT FALSE
@@ -43,6 +45,7 @@ target_sources(ExtasisMarimba PRIVATE
     Source/GUI/MarimbaLookAndFeel.cpp
     Source/GUI/MarimbaDisplay.h
     Source/GUI/MarimbaDisplay.cpp
+    Source/GUI/LogoTriggerComponent.h
 )
 
 target_compile_definitions(ExtasisMarimba PUBLIC
