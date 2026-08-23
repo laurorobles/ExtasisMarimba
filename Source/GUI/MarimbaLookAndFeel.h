@@ -23,19 +23,25 @@ public:
                         bool shouldDrawButtonAsHighlighted,
                         bool shouldDrawButtonAsDown) override;
 
+    void drawComboBox(juce::Graphics& g, int width, int height, bool isButtonDown,
+                      int buttonX, int buttonY, int buttonW, int buttonH,
+                      juce::ComboBox& box) override;
+
+    void positionComboBoxText(juce::ComboBox& box, juce::Label& label) override;
+
     juce::Font getLabelFont(juce::Label&) override;
 
     // Custom Color Palette
-    static juce::Colour getBackgroundDark()    { return juce::Colour(0xff141518); }
-    static juce::Colour getPanelBackground()    { return juce::Colour(0xff1d1f24); }
-    static juce::Colour getPanelBorder()        { return juce::Colour(0xff2d313a); }
+    static juce::Colour getBackgroundDark()    { return juce::Colour(0xff121417); }
+    static juce::Colour getPanelBackground()    { return juce::Colour(0xff1a1d22); }
+    static juce::Colour getPanelBorder()        { return juce::Colour(0xff2d333d); }
     static juce::Colour getAmberGold()          { return juce::Colour(0xffffa834); }
     static juce::Colour getBrightAmber()        { return juce::Colour(0xffffca68); }
     static juce::Colour getWoodWarmth()         { return juce::Colour(0xffb86b36); }
-    static juce::Colour getLcdBackground()      { return juce::Colour(0xff0d131a); }
+    static juce::Colour getLcdBackground()      { return juce::Colour(0xff0d1512); }
     static juce::Colour getLcdCyan()            { return juce::Colour(0xff38e8d8); }
-    static juce::Colour getKnobFace()           { return juce::Colour(0xff23262d); }
-    static juce::Colour getKnobRim()            { return juce::Colour(0xff393e48); }
+    static juce::Colour getKnobFace()           { return juce::Colour(0xff232730); }
+    static juce::Colour getKnobRim()            { return juce::Colour(0xff3a414d); }
 };
 
 } // namespace ExtasisGUI

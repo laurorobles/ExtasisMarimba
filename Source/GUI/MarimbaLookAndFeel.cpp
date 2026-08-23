@@ -6,9 +6,14 @@ namespace ExtasisGUI
 MarimbaLookAndFeel::MarimbaLookAndFeel()
 {
     setColour(juce::Label::textColourId, juce::Colour(0xffd5dadf));
-    setColour(juce::ComboBox::backgroundColourId, getPanelBackground());
-    setColour(juce::ComboBox::textColourId, getAmberGold());
-    setColour(juce::ComboBox::outlineColourId, getPanelBorder());
+    setColour(juce::ComboBox::backgroundColourId, juce::Colour(0xff121417));
+    setColour(juce::ComboBox::textColourId, getBrightAmber());
+    setColour(juce::ComboBox::outlineColourId, juce::Colour(0xff3a414d));
+    setColour(juce::ComboBox::arrowColourId, getAmberGold());
+    setColour(juce::PopupMenu::backgroundColourId, juce::Colour(0xff16191e));
+    setColour(juce::PopupMenu::textColourId, getBrightAmber());
+    setColour(juce::PopupMenu::highlightedBackgroundColourId, juce::Colour(0xff2d2417));
+    setColour(juce::PopupMenu::highlightedTextColourId, juce::Colours::white);
 }
 
 void MarimbaLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
@@ -18,15 +23,12 @@ void MarimbaLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int w
     auto radius = (float) juce::jmin(width / 2, height / 2) - 4.0f;
     auto centreX = (float) x + (float) width * 0.5f;
     auto centreY = (float) y + (float) height * 0.5f;
-    auto rx = centreX - radius;
-    auto ry = centreY - radius;
-    auto rw = radius * 2.0f;
     auto angle = rotaryStartAngle + sliderPosProportional * (rotaryEndAngle - rotaryStartAngle);
 
     // 1. Outer track (inactive)
     juce::Path backgroundArc;
     backgroundArc.addCentredArc(centreX, centreY, radius - 2.0f, radius - 2.0f, 0.0f, rotaryStartAngle, rotaryEndAngle, true);
-    g.setColour(juce::Colour(0xff2a2e36));
+    g.setColour(juce::Colour(0xff262a32));
     g.strokePath(backgroundArc, juce::PathStrokeType(3.5f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
 
     // 2. Active arc value (Amber glow)
@@ -71,56 +73,80 @@ void MarimbaLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int w
     g.fillPath(p);
 }
 
+void MarimbaLookAndFeel::drawComboBox(juce::Graphics& g, int width, int height, bool isButtonDown,
+                                      int buttonX, int buttonY, int buttonW, int buttonH,
+                                      juce::ComboBox& box)
+{
+    auto bounds = juce::Rectangle<int>(0, 0, width, height).toFloat().reduced(1.0f);
+
+    // Dark Rounded Background
+    g.setColour(juce::Colour(0xff121417));
+    g.fillRoundedRectangle(bounds, 4.0f);
+
+    // Glowing border when focused / hovered
+    juce::Colour outlineCol = box.hasKeyboardFocus(true) ? getBrightAmber()
+                            : (box.isMouseOver() ? getAmberGold() : juce::Colour(0xff3a414d));
+    g.setColour(outlineCol);
+    g.drawRoundedRectangle(bounds, 4.0f, 1.2f);
+
+    // Chevron Arrow (v)
+    juce::Path arrow;
+    float ax = (float)buttonX + (float)buttonW * 0.45f;
+    float ay = (float)buttonY + (float)buttonH * 0.5f - 2.0f;
+    float aw = 9.0f;
+    float ah = 5.0f;
+
+    arrow.startNewSubPath(ax, ay);
+    arrow.lineTo(ax + aw * 0.5f, ay + ah);
+    arrow.lineTo(ax + aw, ay);
+
+    g.setColour(isButtonDown ? getBrightAmber() : getAmberGold());
+    g.strokePath(arrow, juce::PathStrokeType(2.2f, juce::PathStrokeType::beveled, juce::PathStrokeType::rounded));
+}
+
+void MarimbaLookAndFeel::positionComboBoxText(juce::ComboBox& box, juce::Label& label)
+{
+    label.setBounds(8, 1, box.getWidth() - 32, box.getHeight() - 2);
+    label.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 12.0f, juce::Font::bold));
+}
+
 void MarimbaLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& button,
                                              const juce::Colour& backgroundColour,
                                              bool shouldDrawButtonAsHighlighted,
                                              bool shouldDrawButtonAsDown)
 {
     auto bounds = button.getLocalBounds().toFloat().reduced(1.0f);
-    bool isTrigger = button.getButtonText().contains("TRIGGER");
-
-    if (isTrigger)
-    {
-        juce::Colour bg = shouldDrawButtonAsDown ? getAmberGold().darker(0.2f) : (shouldDrawButtonAsHighlighted ? juce::Colour(0xff382e1c) : juce::Colour(0xff221b10));
-        g.setColour(bg);
-        g.fillRoundedRectangle(bounds, 5.0f);
-
-        // Amber Glowing Border
-        g.setColour(shouldDrawButtonAsDown ? getBrightAmber() : (shouldDrawButtonAsHighlighted ? getBrightAmber().withAlpha(0.9f) : getAmberGold().withAlpha(0.6f)));
-        g.drawRoundedRectangle(bounds, 5.0f, shouldDrawButtonAsDown ? 2.0f : 1.2f);
-
-        // Top Highlight Bevel
-        g.setColour(juce::Colour(0x30ffffff));
-        g.drawHorizontalLine(static_cast<int>(bounds.getY() + 2.0f), bounds.getX() + 4.0f, bounds.getRight() - 4.0f);
-        return;
-    }
-
-    auto baseColor = backgroundColour.isOpaque() ? backgroundColour : getPanelBackground();
+    auto baseColor = backgroundColour.isOpaque() ? backgroundColour : juce::Colour(0xff22262d);
 
     if (shouldDrawButtonAsDown)
-        baseColor = baseColor.darker(0.3f);
+        baseColor = juce::Colour(0xff16181c);
     else if (shouldDrawButtonAsHighlighted)
-        baseColor = baseColor.brighter(0.2f);
+        baseColor = juce::Colour(0xff2d333c);
 
     g.setColour(baseColor);
     g.fillRoundedRectangle(bounds, 4.0f);
 
-    g.setColour(shouldDrawButtonAsHighlighted ? getAmberGold().withAlpha(0.7f) : getPanelBorder());
+    juce::Colour borderCol = shouldDrawButtonAsHighlighted ? getAmberGold() : juce::Colour(0xff3a414d);
+    g.setColour(borderCol);
     g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
 }
 
 void MarimbaLookAndFeel::drawButtonText(juce::Graphics& g, juce::TextButton& button,
                                        bool /*shouldDrawButtonAsHighlighted*/,
-                                       bool /*shouldDrawButtonAsDown*/)
+                                       bool shouldDrawButtonAsDown)
 {
-    g.setFont(juce::Font(13.0f, juce::Font::bold));
-    g.setColour(button.isEnabled() ? getAmberGold() : juce::Colours::grey);
-    g.drawFittedText(button.getButtonText(), button.getLocalBounds(), juce::Justification::centred, 1);
+    auto bounds = button.getLocalBounds().toFloat();
+    if (shouldDrawButtonAsDown)
+        bounds.translate(0.0f, 1.0f);
+
+    g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 11.5f, juce::Font::bold));
+    g.setColour(button.isEnabled() ? getBrightAmber() : juce::Colours::grey);
+    g.drawFittedText(button.getButtonText(), bounds.toNearestInt(), juce::Justification::centred, 1);
 }
 
 juce::Font MarimbaLookAndFeel::getLabelFont(juce::Label&)
 {
-    return juce::Font(12.5f, juce::Font::bold);
+    return juce::Font(juce::Font::getDefaultMonospacedFontName(), 10.5f, juce::Font::bold);
 }
 
 } // namespace ExtasisGUI

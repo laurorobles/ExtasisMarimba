@@ -1,10 +1,9 @@
 #pragma once
 #include <juce_audio_processors/juce_audio_processors.h>
-#include <BinaryData.h>
 #include "PluginProcessor.h"
 #include "GUI/MarimbaLookAndFeel.h"
 #include "GUI/MarimbaDisplay.h"
-#include "GUI/LogoTriggerComponent.h"
+#include "GUI/MarimbaTriggerButton.h"
 
 class ExtasisMarimbaAudioProcessorEditor : public juce::AudioProcessorEditor,
                                            public juce::Slider::Listener,
@@ -32,11 +31,8 @@ private:
     juce::TextButton prevPresetBtn { "<" };
     juce::TextButton nextPresetBtn { ">" };
 
-    // Center Click & Drag Logo Trigger
-    ExtasisGUI::LogoTriggerComponent logoTrigger;
-    juce::TextButton noteDownBtn { "◀ -1" };
-    juce::TextButton noteUpBtn { "+1 ▶" };
-    juce::ComboBox triggerVelBox;
+    // Logo Trigger Pad (Exact ExtasisDonker architecture)
+    ExtasisGUI::MarimbaTriggerButton triggerButton;
 
     // Knobs & Labels
     struct KnobControl

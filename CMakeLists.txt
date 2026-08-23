@@ -45,7 +45,8 @@ target_sources(ExtasisMarimba PRIVATE
     Source/GUI/MarimbaLookAndFeel.cpp
     Source/GUI/MarimbaDisplay.h
     Source/GUI/MarimbaDisplay.cpp
-    Source/GUI/LogoTriggerComponent.h
+    Source/GUI/MarimbaTriggerButton.h
+    Source/GUI/MarimbaTriggerButton.cpp
 )
 
 target_compile_definitions(ExtasisMarimba PUBLIC

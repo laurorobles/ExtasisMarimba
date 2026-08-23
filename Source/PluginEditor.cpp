@@ -5,20 +5,13 @@ ExtasisMarimbaAudioProcessorEditor::ExtasisMarimbaAudioProcessorEditor(ExtasisMa
 {
     setLookAndFeel(&customLookAndFeel);
 
-    // 0. Load Embedded Logo into LogoTriggerComponent
-    if (BinaryData::logo_pngSize > 0)
-    {
-        auto img = juce::ImageFileFormat::loadFrom(BinaryData::logo_png, BinaryData::logo_pngSize);
-        logoTrigger.setImage(img);
-    }
-
     // 1. Display Setup & Real-Time Audio Stream
     addAndMakeVisible(display);
     processorRef.onAudioBlockProcessed = [this](const float* samples, int numSamples) {
         display.pushAudioSamples(samples, numSamples);
     };
 
-    // 2. Preset Selector in Header
+    // 2. Preset Selector
     for (int i = 0; i < processorRef.getPresetCount(); ++i)
     {
         presetBox.addItem(processorRef.getPresetTitle(i), i + 1);
@@ -43,9 +36,8 @@ ExtasisMarimbaAudioProcessorEditor::ExtasisMarimbaAudioProcessorEditor(ExtasisMa
     };
     addAndMakeVisible(nextPresetBtn);
 
-    // 3. Center Click & Drag Logo Trigger (Like ExtasisDonker)
-    logoTrigger.setNote(60); // C4
-    logoTrigger.onNoteOn = [this](int midiNote, float vel) {
+    // 3. Logo Trigger Button (Exact ExtasisDonker architecture)
+    triggerButton.onNoteOn = [this](int midiNote, float vel) {
         processorRef.getSynthEngine().noteOn(midiNote, vel);
 
         float h = 0.65f;
@@ -58,43 +50,16 @@ ExtasisMarimbaAudioProcessorEditor::ExtasisMarimbaAudioProcessorEditor(ExtasisMa
             d = static_cast<float>(itD->second.slider->getValue());
 
         display.triggerStrikeAnimation(h, d);
-        display.setParameterReadout("TRIGGER NOTE", ExtasisGUI::LogoTriggerComponent::getNoteName(midiNote) + " (" + juce::String(midiNote) + ") | VEL: " + juce::String(int(vel * 100)) + "%");
     };
 
-    logoTrigger.onNoteOff = [this](int midiNote) {
+    triggerButton.onNoteOff = [this](int midiNote) {
         processorRef.getSynthEngine().noteOff(midiNote);
     };
 
-    logoTrigger.onNoteChanged = [this](int newNote) {
-        display.setParameterReadout("TRIGGER NOTE", ExtasisGUI::LogoTriggerComponent::getNoteName(newNote) + " (" + juce::String(newNote) + ") - DRAGGING");
+    triggerButton.onStatusChange = [this](const juce::String& title, const juce::String& desc) {
+        display.setParameterReadout(title, desc);
     };
-    addAndMakeVisible(logoTrigger);
-
-    // Quick Step Buttons
-    noteDownBtn.onClick = [this]() {
-        int cur = logoTrigger.getNote();
-        int next = juce::jlimit(24, 96, cur - 1);
-        logoTrigger.setNote(next);
-        display.setParameterReadout("TRIGGER NOTE", ExtasisGUI::LogoTriggerComponent::getNoteName(next) + " (" + juce::String(next) + ")");
-    };
-    addAndMakeVisible(noteDownBtn);
-
-    noteUpBtn.onClick = [this]() {
-        int cur = logoTrigger.getNote();
-        int next = juce::jlimit(24, 96, cur + 1);
-        logoTrigger.setNote(next);
-        display.setParameterReadout("TRIGGER NOTE", ExtasisGUI::LogoTriggerComponent::getNoteName(next) + " (" + juce::String(next) + ")");
-    };
-    addAndMakeVisible(noteUpBtn);
-
-    // Velocity Selector
-    triggerVelBox.addItem("VEL: 100%", 1);
-    triggerVelBox.addItem("VEL: 80%", 2);
-    triggerVelBox.addItem("VEL: 60%", 3);
-    triggerVelBox.addItem("VEL: 40%", 4);
-    triggerVelBox.setSelectedId(1, juce::dontSendNotification);
-    triggerVelBox.addListener(this);
-    addAndMakeVisible(triggerVelBox);
+    addAndMakeVisible(triggerButton);
 
     // 4. Create all Rotary Controls
     // Mallet Section
@@ -180,16 +145,6 @@ void ExtasisMarimbaAudioProcessorEditor::comboBoxChanged(juce::ComboBox* comboBo
         processorRef.setCurrentProgram(idx);
         display.setPatchName(presetBox.getText());
     }
-    else if (comboBox == &triggerVelBox)
-    {
-        int id = triggerVelBox.getSelectedId();
-        float v = 1.0f;
-        if (id == 1) v = 1.0f;
-        else if (id == 2) v = 0.8f;
-        else if (id == 3) v = 0.6f;
-        else if (id == 4) v = 0.4f;
-        logoTrigger.setVelocity(v);
-    }
 }
 
 void ExtasisMarimbaAudioProcessorEditor::paint(juce::Graphics& g)
@@ -211,7 +166,7 @@ void ExtasisMarimbaAudioProcessorEditor::paint(juce::Graphics& g)
     g.setColour(ExtasisGUI::MarimbaLookAndFeel::getPanelBorder());
     g.drawHorizontalLine(44, 0.0f, (float)getWidth());
 
-    // Header Title
+    // Header Title & Brand Subtitle
     g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 17.0f, juce::Font::bold));
     g.setColour(ExtasisGUI::MarimbaLookAndFeel::getAmberGold());
     g.drawText("EXTASIS MARIMBA", 20, 0, 190, 44, juce::Justification::centredLeft);
@@ -224,7 +179,7 @@ void ExtasisMarimbaAudioProcessorEditor::paint(juce::Graphics& g)
     g.setColour(ExtasisGUI::MarimbaLookAndFeel::getAmberGold());
     g.fillRect(20, 42, getWidth() - 40, 2);
 
-    // 3. Right Enclosure: Trigger & Audition Module
+    // 3. Modular Sections
     auto drawSectionBox = [&g](juce::Rectangle<float> r, const juce::String& title) {
         g.setColour(juce::Colour(0xff1b1e22));
         g.fillRoundedRectangle(r, 5.0f);
@@ -240,10 +195,7 @@ void ExtasisMarimbaAudioProcessorEditor::paint(juce::Graphics& g)
         g.drawHorizontalLine((int)r.getY() + 20, r.getX() + 8.0f, r.getRight() - 8.0f);
     };
 
-    // Trigger & Audition Box (x=590, y=52, w=310, h=168)
-    drawSectionBox(juce::Rectangle<float>(590, 52, 310, 168), "TRIGGER & NOTE AUDITION");
-
-    // 4. Bottom 4 Modular Sections
+    // Bottom 4 Modular Sections
     drawSectionBox(juce::Rectangle<float>(20, 230, 195, 275), "1. MALLET & STRIKE");
     drawSectionBox(juce::Rectangle<float>(225, 230, 255, 275), "2. MODAL RESONATOR");
     drawSectionBox(juce::Rectangle<float>(490, 230, 195, 275), "3. SEM FILTER");
@@ -252,27 +204,17 @@ void ExtasisMarimbaAudioProcessorEditor::paint(juce::Graphics& g)
 
 void ExtasisMarimbaAudioProcessorEditor::resized()
 {
-    // Preset Selector on Top Right of Header Bar (y=8, h=28)
-    int rightEdge = getWidth() - 20;
-    nextPresetBtn.setBounds(rightEdge - 28, 8, 28, 28);
-    prevPresetBtn.setBounds(rightEdge - 58, 8, 28, 28);
-    presetBox.setBounds(rightEdge - 275, 8, 212, 28);
+    // Display on top left (x=20, y=52, w=570, h=168)
+    display.setBounds(20, 52, 570, 168);
 
-    // Display on top left (x=20, y=52, w=555, h=168)
-    display.setBounds(20, 52, 555, 168);
+    // Preset & Trigger Right Module (x=606, y=52, w=294, h=168)
+    // Row 1: Preset dropdown + Prev/Next
+    presetBox.setBounds(606, 52, 218, 30);
+    prevPresetBtn.setBounds(830, 52, 32, 30);
+    nextPresetBtn.setBounds(868, 52, 32, 30);
 
-    // Trigger & Audition Module (x=590, y=52, w=310, h=168)
-    // Centered Logo Trigger (w=130, h=130)
-    int trigBoxX = 590;
-    int trigBoxY = 52;
-    
-    logoTrigger.setBounds(trigBoxX + 90, trigBoxY + 28, 130, 132);
-
-    // Side Step Buttons and Velocity selector
-    noteDownBtn.setBounds(trigBoxX + 16, trigBoxY + 68, 62, 28);
-    noteUpBtn.setBounds(trigBoxX + 232, trigBoxY + 68, 62, 28);
-
-    triggerVelBox.setBounds(trigBoxX + 16, trigBoxY + 112, 62, 26);
+    // Row 2: Trigger Pad with Logo
+    triggerButton.setBounds(606, 88, 294, 132);
 
     // Knobs Layout in Bottom Sections (y=230, h=275)
     auto placeKnob = [this](const juce::String& id, int x, int y, int w = 74, int h = 88) {
