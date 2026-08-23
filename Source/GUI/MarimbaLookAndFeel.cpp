@@ -58,15 +58,15 @@ void MarimbaLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int w
 
     // Inner Face
     auto faceRadius = knobRadius - 2.0f;
-    g.setGradientFill(juce::ColourGradient(getKnobFace().brighter(0.15f), centreX, centreY - faceRadius,
+    g.setGradientFill(juce::ColourGradient(getKnobFace().brighter(0.1f), centreX, centreY - faceRadius,
                                            getKnobFace().darker(0.3f), centreX, centreY + faceRadius, false));
     g.fillEllipse(centreX - faceRadius, centreY - faceRadius, faceRadius * 2.0f, faceRadius * 2.0f);
 
-    // 4. Indicator Needle / Pointer
+    // 4. Indicator Needle
     juce::Path p;
     auto pointerLength = faceRadius * 0.75f;
-    auto pointerThickness = 3.0f;
-    p.addRoundedRectangle(-pointerThickness * 0.5f, -faceRadius + 2.0f, pointerThickness, pointerLength, 1.5f);
+    auto pointerThickness = 2.5f;
+    p.addRoundedRectangle(-pointerThickness * 0.5f, -faceRadius + 1.0f, pointerThickness, pointerLength, 1.0f);
     p.applyTransform(juce::AffineTransform::rotation(angle).translated(centreX, centreY));
 
     g.setColour(getBrightAmber());
@@ -107,7 +107,7 @@ void MarimbaLookAndFeel::drawComboBox(juce::Graphics& g, int width, int height, 
 void MarimbaLookAndFeel::positionComboBoxText(juce::ComboBox& box, juce::Label& label)
 {
     label.setBounds(8, 1, box.getWidth() - 32, box.getHeight() - 2);
-    label.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 12.0f, juce::Font::bold));
+    label.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 12.0f, juce::Font::bold));
 }
 
 void MarimbaLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& button,
@@ -116,19 +116,19 @@ void MarimbaLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& b
                                              bool shouldDrawButtonAsDown)
 {
     auto bounds = button.getLocalBounds().toFloat().reduced(1.0f);
-    auto baseColor = backgroundColour.isOpaque() ? backgroundColour : juce::Colour(0xff22262d);
+    auto baseColor = backgroundColour;
 
     if (shouldDrawButtonAsDown)
-        baseColor = juce::Colour(0xff16181c);
+        baseColor = baseColor.darker(0.25f);
     else if (shouldDrawButtonAsHighlighted)
-        baseColor = juce::Colour(0xff2d333c);
+        baseColor = baseColor.brighter(0.18f);
 
     g.setColour(baseColor);
-    g.fillRoundedRectangle(bounds, 4.0f);
+    g.fillRoundedRectangle(bounds, 5.0f);
 
-    juce::Colour borderCol = shouldDrawButtonAsHighlighted ? getAmberGold() : juce::Colour(0xff3a414d);
+    juce::Colour borderCol = shouldDrawButtonAsHighlighted ? getAmberGold() : baseColor.brighter(0.25f);
     g.setColour(borderCol);
-    g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
+    g.drawRoundedRectangle(bounds, 5.0f, 1.0f);
 }
 
 void MarimbaLookAndFeel::drawButtonText(juce::Graphics& g, juce::TextButton& button,
@@ -139,8 +139,12 @@ void MarimbaLookAndFeel::drawButtonText(juce::Graphics& g, juce::TextButton& but
     if (shouldDrawButtonAsDown)
         bounds.translate(0.0f, 1.0f);
 
-    g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 11.5f, juce::Font::bold));
-    g.setColour(button.isEnabled() ? getBrightAmber() : juce::Colours::grey);
+    juce::Colour textCol = button.findColour(juce::TextButton::textColourOffId);
+    if (!button.isEnabled())
+        textCol = juce::Colours::grey;
+
+    g.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 11.0f, juce::Font::bold));
+    g.setColour(textCol);
     g.drawFittedText(button.getButtonText(), bounds.toNearestInt(), juce::Justification::centred, 1);
 }
 
