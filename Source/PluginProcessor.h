@@ -1,6 +1,7 @@
 #pragma once
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "DSP/MarimbaSynthEngine.h"
+#include <functional>
 
 class ExtasisMarimbaAudioProcessor : public juce::AudioProcessor
 {
@@ -40,6 +41,9 @@ public:
     void loadPreset(int presetIndex);
     int getPresetCount() const { return static_cast<int>(presetNames.size()); }
     juce::String getPresetTitle(int index) const;
+
+    // Real-time audio stream callback for visualizer
+    std::function<void(const float*, int)> onAudioBlockProcessed;
 
 private:
     juce::AudioProcessorValueTreeState apvts;

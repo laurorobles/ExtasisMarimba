@@ -5,8 +5,11 @@ ExtasisMarimbaAudioProcessorEditor::ExtasisMarimbaAudioProcessorEditor(ExtasisMa
 {
     setLookAndFeel(&customLookAndFeel);
 
-    // 1. Display Setup
+    // 1. Display Setup & Real-Time Audio Stream
     addAndMakeVisible(display);
+    processorRef.onAudioBlockProcessed = [this](const float* samples, int numSamples) {
+        display.pushAudioSamples(samples, numSamples);
+    };
 
     // 2. Preset Selector
     for (int i = 0; i < processorRef.getPresetCount(); ++i)
@@ -18,27 +21,23 @@ ExtasisMarimbaAudioProcessorEditor::ExtasisMarimbaAudioProcessorEditor(ExtasisMa
     addAndMakeVisible(presetBox);
 
     prevPresetBtn.onClick = [this]() {
-        int cur = processorRef.getCurrentProgram();
+        int cur = presetBox.getSelectedId() - 1;
         int count = processorRef.getPresetCount();
         int next = (cur - 1 + count) % count;
-        processorRef.setCurrentProgram(next);
-        presetBox.setSelectedId(next + 1, juce::dontSendNotification);
-        display.setPresetName(processorRef.getPresetTitle(next));
+        presetBox.setSelectedId(next + 1, juce::sendNotification);
     };
     addAndMakeVisible(prevPresetBtn);
 
     nextPresetBtn.onClick = [this]() {
-        int cur = processorRef.getCurrentProgram();
+        int cur = presetBox.getSelectedId() - 1;
         int count = processorRef.getPresetCount();
         int next = (cur + 1) % count;
-        processorRef.setCurrentProgram(next);
-        presetBox.setSelectedId(next + 1, juce::dontSendNotification);
-        display.setPresetName(processorRef.getPresetTitle(next));
+        presetBox.setSelectedId(next + 1, juce::sendNotification);
     };
     addAndMakeVisible(nextPresetBtn);
 
-    // 3. Trigger & Test Note Setup (Like ExtasisDonk)
-    triggerButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xff2a2215));
+    // 3. Trigger & Test Note Setup (Like ExtasisDonker)
+    triggerButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xff221b10));
     triggerButton.setColour(juce::TextButton::textColourOnId, ExtasisGUI::MarimbaLookAndFeel::getBrightAmber());
     triggerButton.setColour(juce::TextButton::textColourOffId, ExtasisGUI::MarimbaLookAndFeel::getAmberGold());
     
@@ -57,7 +56,7 @@ ExtasisMarimbaAudioProcessorEditor::ExtasisMarimbaAudioProcessorEditor(ExtasisMa
     // Note Selection ComboBox
     struct NoteItem { int midi; const char* name; };
     const NoteItem notes[] = {
-        { 36, "C2 (36) Deep Bar" },
+        { 36, "C2 (36) Sub Bar" },
         { 41, "F2 (41)" },
         { 45, "A2 (45)" },
         { 48, "C3 (48) Low Bar" },
@@ -98,10 +97,10 @@ ExtasisMarimbaAudioProcessorEditor::ExtasisMarimbaAudioProcessorEditor(ExtasisMa
     addAndMakeVisible(noteUpBtn);
 
     // Velocity Selector
-    triggerVelBox.addItem("VEL: 100%", 1);
-    triggerVelBox.addItem("VEL: 80%", 2);
-    triggerVelBox.addItem("VEL: 60%", 3);
-    triggerVelBox.addItem("VEL: 40%", 4);
+    triggerVelBox.addItem("VEL: 100% (Hard)", 1);
+    triggerVelBox.addItem("VEL: 80% (Norm)", 2);
+    triggerVelBox.addItem("VEL: 60% (Med)", 3);
+    triggerVelBox.addItem("VEL: 40% (Felt)", 4);
     triggerVelBox.setSelectedId(1, juce::dontSendNotification);
     triggerVelBox.addListener(this);
     addAndMakeVisible(triggerVelBox);
@@ -109,7 +108,7 @@ ExtasisMarimbaAudioProcessorEditor::ExtasisMarimbaAudioProcessorEditor(ExtasisMa
     // 4. Create all Rotary Controls
     // Mallet Section
     createKnob("hardness", "HARDNESS", "%");
-    createKnob("click", "CLICK", "%");
+    createKnob("click", "CLICK / SNAP", "%");
     createKnob("attack", "ATTACK", "ms");
 
     // Modal Resonator Section
@@ -127,16 +126,19 @@ ExtasisMarimbaAudioProcessorEditor::ExtasisMarimbaAudioProcessorEditor(ExtasisMa
     createKnob("envDecay", "ENV DECAY", "ms");
     createKnob("release", "RELEASE", "ms");
     createKnob("spread", "SPREAD", "%");
-    createKnob("drive", "DRIVE", "%");
+    createKnob("drive", "WARM DRIVE", "%");
     createKnob("ambience", "AMBIENCE", "%");
-    createKnob("volume", "VOLUME", "");
+    createKnob("volume", "MASTER VOL", "");
 
-    setSize(880, 530);
+    display.setPatchName(presetBox.getText());
+
+    setSize(920, 520);
 }
 
 ExtasisMarimbaAudioProcessorEditor::~ExtasisMarimbaAudioProcessorEditor()
 {
     setLookAndFeel(nullptr);
+    processorRef.onAudioBlockProcessed = nullptr;
 }
 
 void ExtasisMarimbaAudioProcessorEditor::playTriggerNote()
@@ -153,7 +155,7 @@ void ExtasisMarimbaAudioProcessorEditor::playTriggerNote()
         d = static_cast<float>(itD->second.slider->getValue());
 
     display.triggerStrikeAnimation(h, d);
-    display.setParameterReadout("TRIGGER NOTE", triggerNoteBox.getText() + " (VEL " + juce::String(int(currentTriggerVel * 100)) + "%)");
+    display.setParameterReadout("TRIGGER NOTE", triggerNoteBox.getText() + " | VEL: " + juce::String(int(currentTriggerVel * 100)) + "%");
 }
 
 void ExtasisMarimbaAudioProcessorEditor::stopTriggerNote()
@@ -207,7 +209,7 @@ void ExtasisMarimbaAudioProcessorEditor::comboBoxChanged(juce::ComboBox* comboBo
     {
         int idx = presetBox.getSelectedId() - 1;
         processorRef.setCurrentProgram(idx);
-        display.setPresetName(processorRef.getPresetTitle(idx));
+        display.setPatchName(presetBox.getText());
     }
     else if (comboBox == &triggerNoteBox)
     {
@@ -231,85 +233,88 @@ void ExtasisMarimbaAudioProcessorEditor::comboBoxChanged(juce::ComboBox* comboBo
 
 void ExtasisMarimbaAudioProcessorEditor::paint(juce::Graphics& g)
 {
-    // Background Dark Chassis
+    auto bounds = getLocalBounds().toFloat();
+
+    // 1. Chassis: Dark Brushed Metal
     g.fillAll(ExtasisGUI::MarimbaLookAndFeel::getBackgroundDark());
 
-    // Top Brand Bar
-    auto topBar = getLocalBounds().removeFromTop(48);
+    // Bevel borders
+    g.setColour(juce::Colour(0xff2a2d33));
+    g.drawRect(bounds.reduced(0.5f), 1.0f);
+
+    // 2. Top Header Bar
+    auto topBar = bounds.removeFromTop(44.0f);
     g.setColour(ExtasisGUI::MarimbaLookAndFeel::getPanelBackground());
     g.fillRect(topBar);
 
     g.setColour(ExtasisGUI::MarimbaLookAndFeel::getPanelBorder());
-    g.drawHorizontalLine(48, 0, (float)getWidth());
+    g.drawHorizontalLine(44, 0.0f, (float)getWidth());
 
     // Logo & Subtitle
-    g.setFont(juce::Font(18.0f, juce::Font::bold));
+    g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 17.0f, juce::Font::bold));
     g.setColour(ExtasisGUI::MarimbaLookAndFeel::getAmberGold());
-    g.drawText("EXTASIS MARIMBA", 18, 2, 190, 44, juce::Justification::centredLeft);
+    g.drawText("EXTASIS MARIMBA", 20, 0, 200, 44, juce::Justification::centredLeft);
 
-    // Cyan/Gold divider accent
-    g.setColour(ExtasisGUI::MarimbaLookAndFeel::getAmberGold().withAlpha(0.6f));
-    g.fillRect(205, 14, 2, 20);
+    g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 10.5f, juce::Font::plain));
+    g.setColour(juce::Colour(0xff8e96a4));
+    g.drawText("- PHYSICAL MODELING SYNTH // MICROFREAK MODAL ENGINE", 225, 0, 450, 44, juce::Justification::centredLeft);
 
-    g.setFont(juce::Font(10.5f, juce::Font::plain));
-    g.setColour(juce::Colour(0xff8899aa));
-    g.drawText("PHYSICAL MODELING SYNTH // MICROFREAK ENGINE", 215, 2, 310, 44, juce::Justification::centredLeft);
+    // Amber horizontal strip
+    g.setColour(ExtasisGUI::MarimbaLookAndFeel::getAmberGold());
+    g.fillRect(20, 42, getWidth() - 40, 2);
 
-    // Panel Sections Backgrounds
-    auto drawSection = [&](juce::Rectangle<int> rect, const juce::String& title) {
-        g.setColour(ExtasisGUI::MarimbaLookAndFeel::getPanelBackground());
-        g.fillRoundedRectangle(rect.toFloat(), 6.0f);
-        
-        g.setColour(ExtasisGUI::MarimbaLookAndFeel::getPanelBorder());
-        g.drawRoundedRectangle(rect.toFloat(), 6.0f, 1.2f);
+    // 3. Preset & Trigger Right Panel Enclosure
+    auto drawSectionBox = [&g](juce::Rectangle<float> r, const juce::String& title) {
+        g.setColour(juce::Colour(0xff1b1e22));
+        g.fillRoundedRectangle(r, 5.0f);
+        g.setColour(juce::Colour(0xff333842));
+        g.drawRoundedRectangle(r, 5.0f, 1.0f);
 
-        auto headerRect = rect.removeFromTop(24);
-        g.setColour(juce::Colour(0x1a2d313a));
-        g.fillRoundedRectangle(headerRect.toFloat(), 4.0f);
-
-        g.setFont(juce::Font(11.0f, juce::Font::bold));
+        // Section Title Header
         g.setColour(ExtasisGUI::MarimbaLookAndFeel::getAmberGold());
-        g.drawText(title, headerRect.reduced(8, 0), juce::Justification::centredLeft, false);
+        g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 10.5f, juce::Font::bold));
+        g.drawText(title, (int)r.getX() + 10, (int)r.getY() + 4, (int)r.getWidth() - 20, 16, juce::Justification::left);
+
+        g.setColour(juce::Colour(0x33ffa834));
+        g.drawHorizontalLine((int)r.getY() + 20, r.getX() + 8.0f, r.getRight() - 8.0f);
     };
 
-    // 4 Modular Sections (Width 880)
-    drawSection(juce::Rectangle<int>(16, 178, 190, 336), "1. MALLET & STRIKE");
-    drawSection(juce::Rectangle<int>(216, 178, 246, 336), "2. MODAL RESONATOR");
-    drawSection(juce::Rectangle<int>(472, 178, 190, 336), "3. SEM FILTER");
-    drawSection(juce::Rectangle<int>(672, 178, 192, 336), "4. MASTER & FX");
+    // Preset & Trigger Box (x=600, y=52, w=300, h=168)
+    drawSectionBox(juce::Rectangle<float>(600, 52, 300, 168), "PRESET & TRIGGER CONTROL");
+
+    // 4. Bottom 4 Modular Sections
+    drawSectionBox(juce::Rectangle<float>(20, 230, 195, 275), "1. MALLET & STRIKE");
+    drawSectionBox(juce::Rectangle<float>(225, 230, 255, 275), "2. MODAL RESONATOR");
+    drawSectionBox(juce::Rectangle<float>(490, 230, 195, 275), "3. SEM FILTER");
+    drawSectionBox(juce::Rectangle<float>(695, 230, 205, 275), "4. MASTER & FX");
 }
 
 void ExtasisMarimbaAudioProcessorEditor::resized()
 {
-    // Preset Selector on Top Right
-    int rightEdge = getWidth() - 16;
-    nextPresetBtn.setBounds(rightEdge - 28, 10, 28, 28);
-    prevPresetBtn.setBounds(rightEdge - 58, 10, 28, 28);
-    presetBox.setBounds(rightEdge - 270, 10, 208, 28);
+    // Display on top left (x=20, y=52, w=570, h=168)
+    display.setBounds(20, 52, 570, 168);
 
-    // Top Center Display & Trigger Bar
-    // Display: left side (width = 540)
-    display.setBounds(16, 56, 540, 110);
+    // Preset & Trigger Controls inside the top-right box (x=600, y=52, w=300, h=168)
+    int boxX = 612;
+    int boxY = 80;
 
-    // Trigger Box on the right side of the Display (x = 566, width = 298, height = 110)
-    int trigX = 566;
-    int trigY = 56;
-    
-    triggerButton.setBounds(trigX, trigY, 110, 48);
-    
-    // Note Selector Controls
-    noteDownBtn.setBounds(trigX + 118, trigY, 26, 26);
-    triggerNoteBox.setBounds(trigX + 148, trigY, 122, 26);
-    noteUpBtn.setBounds(trigX + 274, trigY, 26, 26);
+    // Fila 1: Preset dropdown + Prev/Next
+    presetBox.setBounds(boxX, boxY, 210, 28);
+    prevPresetBtn.setBounds(boxX + 216, boxY, 28, 28);
+    nextPresetBtn.setBounds(boxX + 248, boxY, 28, 28);
 
-    // Velocity Selector
-    triggerVelBox.setBounds(trigX + 118, trigY + 30, 182, 26);
+    // Fila 2: Trigger Button
+    triggerButton.setBounds(boxX, boxY + 36, 276, 36);
 
-    // Trigger Quick Info Label
-    // (Additional decorative button/status under trigger)
+    // Fila 3: Note selector + Velocity
+    noteDownBtn.setBounds(boxX, boxY + 78, 24, 26);
+    triggerNoteBox.setBounds(boxX + 28, boxY + 78, 126, 26);
+    noteUpBtn.setBounds(boxX + 158, boxY + 78, 24, 26);
 
-    // Knobs Layout inside sections
-    auto layoutKnob = [this](const juce::String& id, int x, int y, int w = 74, int h = 88) {
+    triggerVelBox.setBounds(boxX + 188, boxY + 78, 88, 26);
+
+    // Knobs Layout in Bottom Sections (y=230, h=275)
+    auto placeKnob = [this](const juce::String& id, int x, int y, int w = 74, int h = 88) {
         if (controls.find(id) != controls.end())
         {
             controls[id].slider->setBounds(x, y + 16, w, h - 16);
@@ -317,27 +322,27 @@ void ExtasisMarimbaAudioProcessorEditor::resized()
         }
     };
 
-    // Section 1: Mallet & Strike (x=16, y=178)
-    layoutKnob("hardness", 28, 212, 74, 88);
-    layoutKnob("click", 116, 212, 74, 88);
-    layoutKnob("attack", 72, 322, 74, 88);
+    // Section 1: Mallet & Strike (x=20)
+    placeKnob("hardness", 32, 265, 74, 88);
+    placeKnob("click", 120, 265, 74, 88);
+    placeKnob("attack", 76, 375, 74, 88);
 
-    // Section 2: Modal Resonator (x=216, y=178)
-    layoutKnob("decay", 228, 212, 74, 88);
-    layoutKnob("material", 316, 212, 74, 88);
-    layoutKnob("overtones", 228, 322, 74, 88);
-    layoutKnob("pipe", 316, 322, 74, 88);
+    // Section 2: Modal Resonator (x=225)
+    placeKnob("decay", 240, 265, 74, 88);
+    placeKnob("material", 330, 265, 74, 88);
+    placeKnob("overtones", 240, 375, 74, 88);
+    placeKnob("pipe", 330, 375, 74, 88);
 
-    // Section 3: SEM Filter (x=472, y=178)
-    layoutKnob("cutoff", 484, 212, 74, 88);
-    layoutKnob("resonance", 572, 212, 74, 88);
-    layoutKnob("filterEnv", 528, 322, 74, 88);
+    // Section 3: SEM Filter (x=490)
+    placeKnob("cutoff", 502, 265, 74, 88);
+    placeKnob("resonance", 592, 265, 74, 88);
+    placeKnob("filterEnv", 547, 375, 74, 88);
 
-    // Section 4: Master & FX (x=672, y=178)
-    layoutKnob("envDecay", 682, 212, 74, 88);
-    layoutKnob("release", 772, 212, 74, 88);
-    layoutKnob("spread", 682, 312, 74, 88);
-    layoutKnob("drive", 772, 312, 74, 88);
-    layoutKnob("ambience", 682, 412, 74, 88);
-    layoutKnob("volume", 772, 412, 74, 88);
+    // Section 4: Master & FX (x=695)
+    placeKnob("envDecay", 708, 260, 68, 80);
+    placeKnob("release", 790, 260, 68, 80);
+    placeKnob("spread", 708, 340, 68, 80);
+    placeKnob("drive", 790, 340, 68, 80);
+    placeKnob("ambience", 708, 420, 68, 80);
+    placeKnob("volume", 790, 420, 68, 80);
 }

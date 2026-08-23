@@ -271,6 +271,12 @@ void ExtasisMarimbaAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer
 
     // Render Audio
     synthEngine.renderAudio(buffer, buffer.getNumSamples());
+
+    // Stream to GUI Visualizer
+    if (onAudioBlockProcessed != nullptr && buffer.getNumChannels() > 0)
+    {
+        onAudioBlockProcessed(buffer.getReadPointer(0), buffer.getNumSamples());
+    }
 }
 
 bool ExtasisMarimbaAudioProcessor::hasEditor() const { return true; }
