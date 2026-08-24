@@ -7,6 +7,10 @@
 [![Format](https://img.shields.io/badge/Format-VST3%20%7C%20AU%20%7C%20Standalone-green.svg)](https://github.com/laurorobles)
 [![Architecture](https://img.shields.io/badge/DSP-Physical--FM%20Modal-red.svg)](https://extasisrecords.bandcamp.com)
 
+
+<p align="center">
+  <img src="assets/screenshot.png" alt="Extasis Marimba Interface" width="900" style="border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.4);" />
+</p>
 ---
 
 ## 🌟 Overview
