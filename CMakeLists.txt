@@ -71,3 +71,26 @@ add_custom_command(TARGET ExtasisMarimba_Standalone POST_BUILD
         "$<TARGET_BUNDLE_DIR:ExtasisMarimba_Standalone>/Contents/Resources/Icon.icns"
     COMMENT "Copying icon.icns to Standalone app bundle"
 )
+
+# Custom post-build step to guarantee installation to user plug-in directory
+if (APPLE)
+    if (TARGET ExtasisMarimba_VST3)
+        add_custom_command(TARGET ExtasisMarimba_VST3 POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory "$ENV{HOME}/Library/Audio/Plug-Ins/VST3"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                "$<TARGET_BUNDLE_DIR:ExtasisMarimba_VST3>"
+                "$ENV{HOME}/Library/Audio/Plug-Ins/VST3/ExtasisMarimba.vst3"
+            COMMENT "Installing VST3 to ~/Library/Audio/Plug-Ins/VST3/"
+        )
+    endif()
+
+    if (TARGET ExtasisMarimba_AU)
+        add_custom_command(TARGET ExtasisMarimba_AU POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory "$ENV{HOME}/Library/Audio/Plug-Ins/Components"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                "$<TARGET_BUNDLE_DIR:ExtasisMarimba_AU>"
+                "$ENV{HOME}/Library/Audio/Plug-Ins/Components/ExtasisMarimba.component"
+            COMMENT "Installing AU to ~/Library/Audio/Plug-Ins/Components/"
+        )
+    endif()
+endif()
