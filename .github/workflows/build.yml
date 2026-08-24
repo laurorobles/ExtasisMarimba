@@ -144,6 +144,30 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
+          name: "ExtasisMarimba v3.0.0"
+          body: |
+            ### 🚀 Lanzamiento Oficial v3.0.0
+            
+            Este release incluye los binarios e instaladores oficiales para **ExtasisMarimba** en Windows, macOS y Linux.
+            
+            **Formatos incluidos:**
+            - **VST3**
+            - **CLAP**
+            - **Audio Unit (AU)** (macOS)
+            - **Standalone** (Aplicación independiente)
+            
+            **Documentación:**
+            - Manual de Usuario (`MANUAL.md`)
+            - Ficha Técnica (`TECHNICAL.md`)
+            - Presentación (`PRESENTATION.md`)
+            - Arquitectura DSP (`ARCHITECTURE.md`)
+            
+            ---
+            
+            ### 🔑 Licencia y Activación
+            Consigue tu clave de licencia oficial en **[Gumroad](http://laurorobles.gumroad.com)**.
+            *El plugin funcionará en modo demo (silenciado a los 10 minutos de uso continuo) hasta ingresar la licencia.*
+          generate_release_notes: true
           files: final-assets/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
