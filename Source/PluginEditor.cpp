@@ -3,8 +3,8 @@
 ExtasisMarimbaAudioProcessorEditor::ExtasisMarimbaAudioProcessorEditor(ExtasisMarimbaAudioProcessor& p)
     : AudioProcessorEditor(&p), processorRef(p)
 {
-    addAndMakeVisible(gumroadLinkBtn);
-    gumroadLinkBtn.setColour(juce::HyperlinkButton::textColourId, juce::Colours::yellow);
+    
+    
 
     setLookAndFeel(&customLookAndFeel);
 
@@ -94,11 +94,7 @@ ExtasisMarimbaAudioProcessorEditor::ExtasisMarimbaAudioProcessorEditor(ExtasisMa
     };
     addAndMakeVisible(triggerButton);
 
-    // 4. Header Links & License Badge
-    bandcampLinkBtn.setFont(juce::FontOptions(10.0f, juce::Font::bold), false, juce::Justification::centredRight);
-    bandcampLinkBtn.setColour(juce::HyperlinkButton::textColourId, ExtasisGUI::MarimbaLookAndFeel::getAmberGold().withAlpha(0.95f));
-    addAndMakeVisible(bandcampLinkBtn);
-
+    // 4. Header License Badge
     addAndMakeVisible(licenseBadgeButton);
     licenseBadgeButton.onClick = [this]() {
         showActivationModal = true;
@@ -110,8 +106,6 @@ ExtasisMarimbaAudioProcessorEditor::ExtasisMarimbaAudioProcessorEditor(ExtasisMa
 
     addChildComponent(activationOverlay);
     activationOverlay.onActivate = [this](const juce::String& key) {
-    gumroadLinkBtn.setBounds(getWidth() - 110, 10, 100, 24);
-
         if (LicenseManager::validateSerial(key))
         {
             LicenseManager::saveLicense(key);
@@ -391,7 +385,6 @@ void ExtasisMarimbaAudioProcessorEditor::paint(juce::Graphics& g)
 void ExtasisMarimbaAudioProcessorEditor::resized()
 {
     // Bandcamp Link in Header
-    bandcampLinkBtn.setBounds(getWidth() - 325, 8, 205, 18);
 
     // Header License Badge
     licenseBadgeButton.setBounds(getWidth() - 110, 8, 90, 24);
