@@ -1,8 +1,9 @@
-name: Build ExtasisMarimba (Windows, macOS, Linux)
+name: Build and Release ExtasisMarimba
 
 on:
   push:
     branches: [ "main" ]
+    tags: [ "v*.*.*" ]
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
@@ -17,15 +18,15 @@ jobs:
         include:
           - name: Windows (x64)
             os: windows-latest
-            artifact_name: ExtasisMarimba-Windows
+            artifact_name: Windows-Build
             cmake_args: -DCMAKE_BUILD_TYPE=Release -DJUCE_COPY_PLUGIN_AFTER_BUILD=FALSE
           - name: macOS (Universal)
             os: macos-latest
-            artifact_name: ExtasisMarimba-macOS
+            artifact_name: macOS-Build
             cmake_args: -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DJUCE_COPY_PLUGIN_AFTER_BUILD=FALSE
           - name: Linux (x64)
             os: ubuntu-latest
-            artifact_name: ExtasisMarimba-Linux
+            artifact_name: Linux-Build
             cmake_args: -DCMAKE_BUILD_TYPE=Release -DJUCE_COPY_PLUGIN_AFTER_BUILD=FALSE
 
     steps:
@@ -92,7 +93,7 @@ jobs:
             chmod +x artifacts/installer/INSTALL_MAC.command 2>/dev/null || true
             chmod +x artifacts/installer/INSTALL_LINUX.sh 2>/dev/null || true
           fi
-          for doc in MANUAL.md README.md PRESENTATION.md TECHNICAL.md FICHA_TECNICA.md ARCHITECTURE.md; do
+          for doc in MANUAL.md README.md PRESENTATION.md TECHNICAL.md FICHA_TECNICA.md ARCHITECTURE.md RELEASE_RULES.md; do
             if [ -f "$doc" ]; then cp "$doc" artifacts/; fi
           done
 
@@ -101,3 +102,48 @@ jobs:
         with:
           name: ${{ matrix.artifact_name }}
           path: artifacts/
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download Windows Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Windows-Build
+          path: release-files/Windows/
+
+      - name: Download macOS Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: macOS-Build
+          path: release-files/macOS/
+
+      - name: Download Linux Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Linux-Build
+          path: release-files/Linux/
+
+      - name: Package Release Files
+        run: |
+          mkdir final-assets
+          cd release-files
+          zip -r ../final-assets/ExtasisMarimba-Windows.zip Windows/
+          zip -r ../final-assets/ExtasisMarimba-macOS.zip macOS/
+          zip -r ../final-assets/ExtasisMarimba-Linux.zip Linux/
+          cd ..
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: final-assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
