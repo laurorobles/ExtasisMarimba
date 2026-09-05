@@ -18,7 +18,7 @@ juce_add_plugin(ExtasisMarimba
     PLUGIN_MANUFACTURER_CODE Exta
     PLUGIN_CODE Emrb
     FORMATS VST3 AU Standalone CLAP
-    PRODUCT_NAME "ExtasisMarimba"
+    PRODUCT_NAME "Extasis Marimba"
     ICON_BIG assets/logo.png
     ICON_SMALL assets/logo.png
     IS_SYNTH TRUE

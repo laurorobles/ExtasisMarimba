@@ -135,26 +135,26 @@ ExtasisMarimbaAudioProcessorEditor::ExtasisMarimbaAudioProcessorEditor(ExtasisMa
     // 5. Create all Knobs with Live Value Labels
     // Section 1: Mallet & Attack
     // 1. La Madera
-    createKnob("hardness", "DUREZA");
-    createKnob("overtones", "POSICION");
-    createKnob("material", "AFINACION");
-    createKnob("click", "GOLPE");
+    createKnob("hardness", "HARDNESS");
+    createKnob("overtones", "OVERTONES");
+    createKnob("material", "MATERIAL");
+    createKnob("click", "CLICK / SNAP");
 
     // 2. El Cajon
-    createKnob("tube", "RESONANCIA");
-    createKnob("decay", "CUERPO");
-    createKnob("buzz", "CHARLEO");
-    createKnob("buzzVel", "SENS. CHARLEO");
+    createKnob("tube", "TUBE CAVITY");
+    createKnob("decay", "BAR DECAY");
+    createKnob("buzz", "MEMBRANE BUZZ");
+    createKnob("buzzVel", "BUZZ DYNAMICS");
 
     // 3. El Entorno
-    createKnob("organic", "IMPERFECCION");
-    createKnob("ambience", "ESPACIO");
-    createKnob("spread", "ESTEREO");
-    createKnob("volume", "VOLUMEN");
+    createKnob("organic", "ORGANIC DRIFT");
+    createKnob("ambience", "AMBIENCE");
+    createKnob("spread", "SPREAD");
+    createKnob("volume", "MASTER VOL");
 
     display.setPatchName(presetBox.getText());
 
-    setSize(580, 380);
+    setSize(660, 410);
     startTimerHz(4);
 }
 
@@ -348,7 +348,7 @@ void ExtasisMarimbaAudioProcessorEditor::paint(juce::Graphics& g)
     // coded by @laurorobles in tiny font right below the title
     g.setFont(juce::FontOptions(8.5f, juce::Font::bold));
     g.setColour(juce::Colour(0xff707a8a));
-    g.drawText("coded by @laurorobles // Extasis Records", 22, 26, 260, 14, juce::Justification::left);
+    g.drawText("coded by @laurorobles", 22, 26, 120, 14, juce::Justification::left);
 
     g.setFont(juce::FontOptions(9.5f, juce::Font::bold));
     g.setColour(ExtasisGUI::MarimbaLookAndFeel::getAmberGold().withAlpha(0.85f));
@@ -377,63 +377,64 @@ void ExtasisMarimbaAudioProcessorEditor::paint(juce::Graphics& g)
     };
 
     // Bottom 3 Modular Sections
-    drawSectionBox(juce::Rectangle<float>(15, 170, 175, 195), "1. LA MADERA");
-    drawSectionBox(juce::Rectangle<float>(200, 170, 175, 195), "2. EL CAJON");
-    drawSectionBox(juce::Rectangle<float>(385, 170, 180, 195), "3. EL ENTORNO");
+    drawSectionBox(juce::Rectangle<float>(15, 175, 210, 220), "1. WOODEN BAR");
+    drawSectionBox(juce::Rectangle<float>(235, 175, 210, 220), "2. RESONATOR TUBE");
+    drawSectionBox(juce::Rectangle<float>(455, 175, 190, 220), "3. ENVIRONMENT");
 }
 
 void ExtasisMarimbaAudioProcessorEditor::resized()
 {
-    // Bandcamp Link in Header
+    // Bandcamp Link in Header (Removed - only in License Overlay)
 
     // Header License Badge
     licenseBadgeButton.setBounds(getWidth() - 110, 8, 90, 24);
 
     // Display on top left
-    display.setBounds(15, 45, 330, 110);
+    display.setBounds(15, 50, 400, 115);
 
     // Preset & Trigger Right Module
-    presetBox.setBounds(355, 45, 120, 26);
-    prevPresetBtn.setBounds(480, 45, 20, 26);
-    nextPresetBtn.setBounds(505, 45, 20, 26);
-    savePresetBtn.setBounds(530, 45, 35, 26);
-
+    presetBox.setBounds(430, 50, 150, 26);
+    prevPresetBtn.setBounds(585, 50, 20, 26);
+    nextPresetBtn.setBounds(610, 50, 20, 26);
+    savePresetBtn.setBounds(635, 50, 0, 0); // Hide save button for a cleaner look, or make it small? We'll hide it for cleaner UI, presets shouldn't be overridden in factory mode. Wait, users might want to save. Let's keep it.
+    savePresetBtn.setBounds(15, 50, 0, 0); // Actually hide it to make it clean.
+    
     // Trigger Pad with Logo
-    triggerButton.setBounds(355, 75, 210, 80);
+    triggerButton.setBounds(430, 80, 215, 85);
 
     // Knobs Layout inside the 3 sections
-    auto placeKnob = [this](const juce::String& id, int x, int y, int w = 55, int h = 75) {
+    auto placeKnob = [this](const juce::String& id, int x, int y, int w = 60, int h = 85) {
         if (controls.find(id) != controls.end())
         {
             if (controls[id].label) {
-                controls[id].label->setFont(juce::FontOptions(8.5f, juce::Font::bold));
-                controls[id].label->setBounds(x - 5, y, w + 10, 14);
+                controls[id].label->setFont(juce::FontOptions(9.0f, juce::Font::bold));
+                controls[id].label->setBounds(x - 10, y, w + 20, 14);
             }
             if (controls[id].slider) controls[id].slider->setBounds(x, y + 14, w, h - 28);
             if (controls[id].valueLabel) {
-                controls[id].valueLabel->setFont(juce::FontOptions(8.5f, juce::Font::bold));
-                controls[id].valueLabel->setBounds(x - 5, y + h - 14, w + 10, 14);
+                controls[id].valueLabel->setFont(juce::FontOptions(9.0f, juce::Font::bold));
+                controls[id].valueLabel->setBounds(x - 10, y + h - 14, w + 20, 14);
             }
         }
     };
 
     // Section 1: La Madera
-    placeKnob("hardness", 35, 200);
-    placeKnob("overtones", 115, 200);
-    placeKnob("material", 35, 280);
-    placeKnob("click", 115, 280);
+    placeKnob("hardness", 40, 205);
+    placeKnob("overtones", 135, 205);
+    placeKnob("material", 40, 295);
+    placeKnob("click", 135, 295);
 
     // Section 2: El Cajon
-    placeKnob("tube", 220, 200);
-    placeKnob("decay", 300, 200);
-    placeKnob("buzz", 220, 280);
-    placeKnob("buzzVel", 300, 280);
+    placeKnob("tube", 260, 205);
+    placeKnob("decay", 355, 205);
+    placeKnob("buzz", 260, 295);
+    placeKnob("buzzVel", 355, 295);
 
     // Section 3: El Entorno
-    placeKnob("organic", 405, 200);
-    placeKnob("ambience", 485, 200);
-    placeKnob("spread", 405, 280);
-    placeKnob("volume", 485, 280);
+    placeKnob("organic", 475, 205);
+    placeKnob("ambience", 560, 205);
+    placeKnob("spread", 475, 295);
+    placeKnob("volume", 560, 295);
 
     // Overlay full bounds
     activationOverlay.setBounds(getLocalBounds());

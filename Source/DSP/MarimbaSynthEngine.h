@@ -109,17 +109,26 @@ public:
         float freq = 440.0f * std::pow(2.0f, (note - 69.0f + (detuneCents / 100.0f)) / 12.0f);
         fundamental = freq;
         
-        // Stereo Pan
-        pan = dist(gen) * p_spread;
+        // Acoustic Stereo Panning (Key-tracked: Low = Left, High = Right)
+        float acousticPan = (note - 66.0f) / 30.0f; // C4 is center
+        acousticPan = std::max(-1.0f, std::min(1.0f, acousticPan));
+        pan = acousticPan * p_spread; // Spread scales the width
         
         // Randomizations based on organic
         float randomDecayShift = 1.0f + (dist(gen) * 0.2f * p_organic); 
 
+        // --- 46. Dynamic Strike Variation (Per-Hit Randomness) ---
+        // While the above 'gen' gives consistent imperfection PER KEY,
+        // this gives variation PER STRIKE (hitting different spots on the bar)
+        float strikeRand1 = (juce::Random::getSystemRandom().nextFloat() * 2.0f) - 1.0f;
+        float strikeRand2 = (juce::Random::getSystemRandom().nextFloat() * 2.0f) - 1.0f;
+
         // --- 20. FM Core Setup (Tuned Bar 1:4:10) ---
         carrier.reset(); modA.reset(); modB.reset();
         
-        // Pitch Transient (+10 cents dropping to 0)
-        pitchEnv.trigger(10.0f / 1200.0f, 20.0f, sr); 
+        // Pitch Transient (+10 cents dropping to 0, slightly randomized per strike)
+        float pitchHit = (10.0f + (strikeRand1 * 5.0f * p_organic)) / 1200.0f;
+        pitchEnv.trigger(pitchHit, 20.0f, sr); 
         
         // Tuned Ratios (Point 4 & 55): 4.0 and 10.0
         // 'Material' parameter slightly de-tunes them to make the wood less perfect
@@ -130,7 +139,8 @@ public:
         
         // --- Spectral ADSRs & Velocity Mapping (Point 29 & 12) ---
         // Velocity heavily influences how much energy goes into upper modes, not just volume
-        float dynamicFM = vel * vel; // Exponential response to velocity
+        // We also apply up to +/- 15% random variation based on ORGANIC DRIFT for realism
+        float dynamicFM = (vel * vel) * (1.0f + (strikeRand2 * 0.15f * p_organic));
         
         // 1. Modulator A (4x Mode): Medium decay
         float envADecay = 80.0f + (1.0f - p_hardness) * 100.0f; // 80ms to 180ms
@@ -144,14 +154,17 @@ public:
         
         // 3. Amplitude Envelope (Macroescala)
         float macroDecay = 100.0f + p_decay * 400.0f; // 100ms to 500ms
-        // Keytracking: High notes decay faster
-        float keyTrack = std::max(0.2f, std::min(1.0f, 1.0f - (note - 60.0f) / 48.0f));
+        // Stronger Keytracking: High notes decay extremely fast, low notes ring out
+        float keyTrack = std::pow(0.5f, (note - 60.0f) / 15.0f); 
+        keyTrack = std::max(0.12f, std::min(2.5f, keyTrack));
         ampEnv.trigger(vel, macroDecay * keyTrack * randomDecayShift, sr);
         
         // --- 39. Attack Noise (TAK/TCK) ---
         noiseFilt.reset();
         noiseFilt.setHPF(2500.0f, 0.707f, sr); // HPF at 2.5kHz
-        noiseEnv.trigger(dynamicFM * p_click * 1.5f, 5.0f, sr); // 5ms click envelope
+        // The click also varies per strike
+        float dynamicClick = p_click * (1.0f + (strikeRand1 * 0.2f * p_organic));
+        noiseEnv.trigger(dynamicFM * dynamicClick * 1.5f, 5.0f, sr); // 5ms click envelope
         
         // --- 10 & 41. Resonator & Delay (El Tubo) ---
         tubeFilt.reset();
