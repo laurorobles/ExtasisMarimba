@@ -10,9 +10,9 @@ set PRESETS_DIR=%USERPROFILE%\Documents\ExtasisRecords\ExtasisMarimba\Presets
 if not exist "%VST3_DIR%" mkdir "%VST3_DIR%"
 if not exist "%PRESETS_DIR%" mkdir "%PRESETS_DIR%"
 
-if exist "%SCRIPT_DIR%ExtasisMarimba.vst3" (
-    echo Installing ExtasisMarimba.vst3...
-    xcopy /E /I /Y "%SCRIPT_DIR%ExtasisMarimba.vst3" "%VST3_DIR%\ExtasisMarimba.vst3"
+if exist "%SCRIPT_DIR%Extasis Marimba.vst3" (
+    echo Installing Extasis Marimba.vst3...
+    xcopy /E /I /Y "%SCRIPT_DIR%Extasis Marimba.vst3" "%VST3_DIR%\Extasis Marimba.vst3"
 )
 
 echo.

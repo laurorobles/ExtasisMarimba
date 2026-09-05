@@ -16,24 +16,24 @@ mkdir -p "$AU_DIR"
 mkdir -p "$PRESETS_DIR"
 
 # Install VST3
-if [ -d "$SCRIPT_DIR/ExtasisMarimba.vst3" ]; then
-    echo "  -> Copying ExtasisMarimba.vst3 to $VST3_DIR..."
-    rm -rf "$VST3_DIR/ExtasisMarimba.vst3"
-    cp -R "$SCRIPT_DIR/ExtasisMarimba.vst3" "$VST3_DIR/"
+if [ -d "$SCRIPT_DIR/Extasis Marimba.vst3" ]; then
+    echo "  -> Copying Extasis Marimba.vst3 to $VST3_DIR..."
+    rm -rf "$VST3_DIR/Extasis Marimba.vst3"
+    cp -R "$SCRIPT_DIR/Extasis Marimba.vst3" "$VST3_DIR/"
 fi
 
 # Install AU
-if [ -d "$SCRIPT_DIR/ExtasisMarimba.component" ]; then
-    echo "  -> Copying ExtasisMarimba.component to $AU_DIR..."
-    rm -rf "$AU_DIR/ExtasisMarimba.component"
-    cp -R "$SCRIPT_DIR/ExtasisMarimba.component" "$AU_DIR/"
+if [ -d "$SCRIPT_DIR/Extasis Marimba.component" ]; then
+    echo "  -> Copying Extasis Marimba.component to $AU_DIR..."
+    rm -rf "$AU_DIR/Extasis Marimba.component"
+    cp -R "$SCRIPT_DIR/Extasis Marimba.component" "$AU_DIR/"
 fi
 
 # Install Standalone App
-if [ -d "$SCRIPT_DIR/ExtasisMarimba.app" ]; then
-    echo "  -> Copying ExtasisMarimba.app to $APP_DIR..."
-    rm -rf "$APP_DIR/ExtasisMarimba.app"
-    cp -R "$SCRIPT_DIR/ExtasisMarimba.app" "$APP_DIR/"
+if [ -d "$SCRIPT_DIR/Extasis Marimba.app" ]; then
+    echo "  -> Copying Extasis Marimba.app to $APP_DIR..."
+    rm -rf "$APP_DIR/Extasis Marimba.app"
+    cp -R "$SCRIPT_DIR/Extasis Marimba.app" "$APP_DIR/"
 fi
 
 # Reset macOS AudioComponent cache if auval is present
