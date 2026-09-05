@@ -2,7 +2,7 @@
 
 # 📜 Changelog — Extasis Marimba
 
-## [3.0.0] - 2026-09-04 (Major Final Release)
+## [3.1.0] - 2026-09-04 (Major Final Release)
 ### DSP & Physics Overhaul
 * **True 1:4:10 Wood Carving Engine:** Completely overhauled the FM mode ratios to perfectly match physical marimba tuning, ditching the uniform dissonant bar model.
 * **Acoustic Key-Tracked Panning:** Implemented physical spatialization where low notes resonate on the left and high notes on the right, scaled by the `SPREAD` knob.
