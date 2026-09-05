@@ -62,38 +62,21 @@ jobs:
         run: |
           mkdir -p artifacts
           
-          # VST3
-          for path in "build/ExtasisMarimba_artefacts/VST3/ExtasisMarimba.vst3" "build/ExtasisMarimba_artefacts/Release/VST3/ExtasisMarimba.vst3" "build/ExtasisMarimba_artefacts/VST3/Extasis *.vst3" "build/ExtasisMarimba_artefacts/Release/VST3/Extasis *.vst3"; do
-            if [ -d "$path" ]; then cp -r "$path" artifacts/; fi
-          done
-          
-          # AU
-          for path in "build/ExtasisMarimba_artefacts/AU/ExtasisMarimba.component" "build/ExtasisMarimba_artefacts/Release/AU/ExtasisMarimba.component"; do
-            if [ -d "$path" ]; then cp -r "$path" artifacts/; fi
-          done
-          
-          # CLAP
-          for path in "build/ExtasisMarimba_artefacts/CLAP/ExtasisMarimba.clap" "build/ExtasisMarimba_artefacts/Release/CLAP/ExtasisMarimba.clap"; do
-            if [ -f "$path" ]; then cp "$path" artifacts/; fi
-          done
-          
-          # Standalone Win
-          for path in "build/ExtasisMarimba_artefacts/Standalone/ExtasisMarimba.exe" "build/ExtasisMarimba_artefacts/Release/Standalone/ExtasisMarimba.exe"; do
-            if [ -f "$path" ]; then cp "$path" artifacts/; fi
-          done
-          
-          # Standalone Mac
-          for path in "build/ExtasisMarimba_artefacts/Standalone/ExtasisMarimba.app" "build/ExtasisMarimba_artefacts/Release/Standalone/ExtasisMarimba.app"; do
-            if [ -d "$path" ]; then cp -r "$path" artifacts/; fi
-          done
-          
-          # Docs & Installer
+          # Find and copy any generated bundles/binaries
+          find build -type d -name "*.vst3" -exec cp -r {} artifacts/ \; 2>/dev/null || true
+          find build -type d -name "*.component" -exec cp -r {} artifacts/ \; 2>/dev/null || true
+          find build -type d -name "*.app" -exec cp -r {} artifacts/ \; 2>/dev/null || true
+          find build -type f -name "*.clap" -exec cp {} artifacts/ \; 2>/dev/null || true
+          find build -type f -name "*.exe" -exec cp {} artifacts/ \; 2>/dev/null || true
+
+          # Installers and docs
           if [ -d "installer" ]; then
             cp -r installer artifacts/
             chmod +x artifacts/installer/INSTALL_MAC.command 2>/dev/null || true
             chmod +x artifacts/installer/INSTALL_LINUX.sh 2>/dev/null || true
           fi
-          for doc in MANUAL.md README.md PRESENTATION.md TECHNICAL.md FICHA_TECNICA.md ARCHITECTURE.md RELEASE_RULES.md; do
+          cp install_mac.sh install_windows.bat artifacts/ 2>/dev/null || true
+          for doc in MANUAL.md README.md PRESENTATION.md TECHNICAL.md FICHA_TECNICA.md ARCHITECTURE.md RELEASE_RULES.md CHANGELOG.md; do
             if [ -f "$doc" ]; then cp "$doc" artifacts/; fi
           done
 
@@ -134,33 +117,37 @@ jobs:
 
       - name: Package Release Files
         run: |
-          mkdir final-assets
+          mkdir -p final-assets
           cd release-files
-          zip -r ../final-assets/ExtasisMarimba-Windows.zip Windows/
-          zip -r ../final-assets/ExtasisMarimba-macOS.zip macOS/
-          zip -r ../final-assets/ExtasisMarimba-Linux.zip Linux/
+          if [ -d "Windows" ]; then zip -r ../final-assets/ExtasisMarimba-Windows.zip Windows/; fi
+          if [ -d "macOS" ]; then zip -r ../final-assets/ExtasisMarimba-macOS.zip macOS/; fi
+          if [ -d "Linux" ]; then zip -r ../final-assets/ExtasisMarimba-Linux.zip Linux/; fi
           cd ..
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "ExtasisMarimba ${{ github.ref_name }}"
+          name: "Extasis Marimba ${{ github.ref_name }}"
           body: |
             ### 🚀 Lanzamiento Oficial ${{ github.ref_name }}
             
-            Este release incluye los binarios e instaladores oficiales para **ExtasisMarimba** en Windows, macOS y Linux.
+            Este release incluye los binarios e instaladores oficiales para **Extasis Marimba** en macOS, Windows y Linux.
             
-            **Formatos incluidos:**
-            - **VST3**
-            - **CLAP**
-            - **Audio Unit (AU)** (macOS)
-            - **Standalone** (Aplicación independiente)
+            #### 📦 Descarga Directa de Binarios:
+            - 🍏 **[Descargar para macOS (VST3 / AU / Standalone)](https://github.com/laurorobles/ExtasisMarimba/releases/download/${{ github.ref_name }}/ExtasisMarimba-macOS.zip)** (Universal Binary arm64 + x86_64)
+            - 🪟 **[Descargar para Windows (VST3 / Standalone)](https://github.com/laurorobles/ExtasisMarimba/releases/download/${{ github.ref_name }}/ExtasisMarimba-Windows.zip)** (x64)
+            - 🐧 **[Descargar para Linux (VST3 / Standalone)](https://github.com/laurorobles/ExtasisMarimba/releases/download/${{ github.ref_name }}/ExtasisMarimba-Linux.zip)** (x64)
             
-            **Documentación:**
-            - Manual de Usuario (`MANUAL.md`)
-            - Ficha Técnica (`TECHNICAL.md`)
-            - Presentación (`PRESENTATION.md`)
-            - Arquitectura DSP (`ARCHITECTURE.md`)
+            ---
+            
+            **Novedades en ${{ github.ref_name }}:**
+            - 🪵 **Afinación de Maderas 1:4:10:** Modos inarmónicos basados en maderas talladas de hormiguillo (Fundamental, 4.0× octava, 10.0× doble octava + tercera).
+            - 🎚️ **Paneo Acústico por Nota (Key-Tracked Panning):** Graves a la izquierda, agudos a la derecha, controlable con `SPREAD`.
+            - ⏱️ **Decay Acústico Progresivo:** Los agudos decaen de inmediato ("tock" seco) mientras los graves sostienen con riqueza armónica.
+            - 🐝 **La Cachimba (Membrana de Tripa y Cera):** Ruido dinámico excitado por velocidad acústica y resonancia de tubo.
+            - 🎨 **40 Presets de Fábrica:** 4 familias especializadas (Folklore Tradicional, Latin Club / Urbano, Concierto / Mundo, Experimental).
+            - 🖥️ **Interfaz Expandida (660×410 px):** Márgenes amplios, etiquetas en inglés, menú de presets ensanchado con botón `SAVE`.
+            - ⏱️ **Modo Evaluación / Demo:** Sesión de 10 minutos con silenciado automático, reiniciable al recargar el plugin.
             
             ---
             

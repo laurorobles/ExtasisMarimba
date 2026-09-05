@@ -5,7 +5,16 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # JUCE integration
-add_subdirectory(/Users/babyonk1/.gemini/antigravity/scratch/JUCE ${CMAKE_BINARY_DIR}/JUCE)
+if(EXISTS "/Users/babyonk1/.gemini/antigravity/scratch/JUCE")
+    add_subdirectory(/Users/babyonk1/.gemini/antigravity/scratch/JUCE ${CMAKE_BINARY_DIR}/JUCE)
+else()
+    include(FetchContent)
+    FetchContent_Declare(
+        juce
+        URL https://github.com/juce-framework/JUCE/archive/refs/tags/8.0.1.zip
+    )
+    FetchContent_MakeAvailable(juce)
+endif()
 
 juce_add_binary_data(ExtasisMarimbaData
     SOURCES
