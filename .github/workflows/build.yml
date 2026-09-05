@@ -47,7 +47,7 @@ jobs:
 
       - name: Setup Ninja (Mac/Win)
         if: runner.os != 'Linux'
-        uses: ashley-taylor/setup-ninja@v1.0.0
+        uses: seanmiddleditch/gha-setup-ninja@v5
 
       - name: Configure CMake
         run: |
