@@ -20,10 +20,6 @@ jobs:
             os: windows-latest
             artifact_name: Windows-Build
             cmake_args: -DCMAKE_BUILD_TYPE=Release -DJUCE_COPY_PLUGIN_AFTER_BUILD=FALSE
-          - name: macOS (Universal)
-            os: macos-latest
-            artifact_name: macOS-Build
-            cmake_args: -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DJUCE_COPY_PLUGIN_AFTER_BUILD=FALSE
           - name: Linux (x64)
             os: ubuntu-latest
             artifact_name: Linux-Build
@@ -47,7 +43,7 @@ jobs:
 
       - name: Setup Ninja (Mac/Win)
         if: runner.os != 'Linux'
-        uses: seanmiddleditch/gha-setup-ninja@v5
+        uses: seanmiddleditch/gha-setup-ninja@master
 
       - name: Configure CMake
         run: |
@@ -62,20 +58,23 @@ jobs:
         run: |
           mkdir -p artifacts
           
-          # Find and copy any generated bundles/binaries
+          # VST3
           find build -type d -name "*.vst3" -exec cp -r {} artifacts/ \; 2>/dev/null || true
-          find build -type d -name "*.component" -exec cp -r {} artifacts/ \; 2>/dev/null || true
-          find build -type d -name "*.app" -exec cp -r {} artifacts/ \; 2>/dev/null || true
-          find build -type f -name "*.clap" -exec cp {} artifacts/ \; 2>/dev/null || true
+          find build -type f -name "*.vst3" -exec cp -r {} artifacts/ \; 2>/dev/null || true
+          
+          # Standalone & CLAP
           find build -type f -name "*.exe" -exec cp {} artifacts/ \; 2>/dev/null || true
+          find build -type f -name "*.clap" -exec cp {} artifacts/ \; 2>/dev/null || true
+          
+          # Linux Standalone
+          find build -type f -executable -name "Extasis*" -exec cp {} artifacts/ \; 2>/dev/null || true
 
-          # Installers and docs
+          # Docs & Installers
           if [ -d "installer" ]; then
             cp -r installer artifacts/
-            chmod +x artifacts/installer/INSTALL_MAC.command 2>/dev/null || true
             chmod +x artifacts/installer/INSTALL_LINUX.sh 2>/dev/null || true
           fi
-          cp install_mac.sh install_windows.bat artifacts/ 2>/dev/null || true
+          cp install_windows.bat artifacts/ 2>/dev/null || true
           for doc in MANUAL.md README.md PRESENTATION.md TECHNICAL.md FICHA_TECNICA.md ARCHITECTURE.md RELEASE_RULES.md CHANGELOG.md; do
             if [ -f "$doc" ]; then cp "$doc" artifacts/; fi
           done
@@ -103,12 +102,6 @@ jobs:
           name: Windows-Build
           path: release-files/Windows/
 
-      - name: Download macOS Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: macOS-Build
-          path: release-files/macOS/
-
       - name: Download Linux Artifacts
         uses: actions/download-artifact@v4
         with:
@@ -120,7 +113,6 @@ jobs:
           mkdir -p final-assets
           cd release-files
           if [ -d "Windows" ]; then zip -r ../final-assets/ExtasisMarimba-Windows.zip Windows/; fi
-          if [ -d "macOS" ]; then zip -r ../final-assets/ExtasisMarimba-macOS.zip macOS/; fi
           if [ -d "Linux" ]; then zip -r ../final-assets/ExtasisMarimba-Linux.zip Linux/; fi
           cd ..
 

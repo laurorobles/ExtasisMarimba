@@ -74,12 +74,14 @@ target_link_libraries(ExtasisMarimba PRIVATE
 )
 
 # Custom post-build step to guarantee installation and app icon
-add_custom_command(TARGET ExtasisMarimba_Standalone POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/assets/icon.icns"
-        "$<TARGET_BUNDLE_DIR:ExtasisMarimba_Standalone>/Contents/Resources/Icon.icns"
-    COMMENT "Copying icon.icns to Standalone app bundle"
-)
+if (APPLE)
+    add_custom_command(TARGET ExtasisMarimba_Standalone POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/assets/icon.icns"
+            "$<TARGET_BUNDLE_DIR:ExtasisMarimba_Standalone>/Contents/Resources/Icon.icns"
+        COMMENT "Copying icon.icns to Standalone app bundle"
+    )
+endif()
 
 # Custom post-build step to guarantee installation to user plug-in directory
 if (APPLE)
