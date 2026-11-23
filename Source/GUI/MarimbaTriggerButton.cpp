@@ -75,7 +75,12 @@ void MarimbaTriggerButton::paint(juce::Graphics& g)
         g.setOpacity(1.0f);
     }
 
-    // 4. Status LED Dot in bottom right corner
+    // 4. Current Audition Note Badge in bottom left corner
+    g.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 9.0f, juce::Font::bold));
+    g.setColour(isTriggerActive ? MarimbaLookAndFeel::getBrightAmber() : juce::Colour(0xff7d8898));
+    g.drawText("PAD: " + getNoteNameString(), static_cast<int>(bounds.getX()) + 8, static_cast<int>(bounds.getBottom()) - 17, 72, 13, juce::Justification::left);
+
+    // 5. Status LED Dot in bottom right corner
     float dotX = bounds.getRight() - 14.0f;
     float dotY = bounds.getBottom() - 14.0f;
     juce::Colour ledColor = isTriggerActive ? juce::Colour(0xffff2a2a) 

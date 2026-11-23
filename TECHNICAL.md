@@ -1,39 +1,41 @@
-# 📋 TECHNICAL SPECIFICATIONS — EXTASIS MARIMBA (v3.0)
+# 📋 TECHNICAL SPECIFICATIONS — EXTASIS MARIMBA (v4.0)
 
 ### 1. GENERAL INFORMATION
 * **Product Name:** Extasis Marimba
-* **Version:** 3.0.0 (Release)
-* **Developer:** Extasis Records / Lauro Robles
+* **Version:** 4.0.0 (Free & Open Source Release)
+* **License:** GNU General Public License v3.0 (GPLv3)
+* **Developer:** Lauro Robles / Extasis Records
 * **Type:** Physical-FM Percussion Synthesizer
-* **Inspiration:** Traditional Mesoamerican Acoustic Marimba Physics
-* **Language:** C++20
+* **Language:** C++17
 * **Framework:** JUCE Framework 8.x
 
 ### 2. AUDIO & DSP SPECIFICATIONS
-* **Polyphony:** 16 voices with intelligent voice stealing algorithm.
-* **Sample Rates:** 44.1 kHz up to 192 kHz support.
-* **Internal Processing:** 32-bit / 64-bit Floating Point with denormal prevention.
-* **Core Engine:** Custom Inharmonic FM Synthesizer avoiding static wavetables or samples.
-* **Mode Tuning Ratios:** Precise 1:4:10 mode implementation mapping physical bar carving.
-* **Acoustic Delay:** Phase-accurate 20ms micro-delay between exciter and tube resonator.
+* **Polyphony:** 16 voices with quietest-voice stealing algorithm.
+* **Sample Rates:** 44.1 kHz to 192 kHz (dynamic delay buffer allocation & Nyquist filter/modulator guarding).
+* **Real-Time Safety:** 100% lock-free audio thread — per-voice `XorShift32` PRNG, zero heap allocations, lock-free SPSC scope ring buffer (`2048` samples) & audition note FIFO.
+* **Core Engine:** Custom Inharmonic 2-Modulator FM Synthesizer with 1:4:10 tuned bar ratios (Fundamental, 4.0×, 10.0×) and transient pitch envelope (+10 cents).
+* **Acoustic Resonator:** 20ms acoustic distance delay feeding a key-tracked 2nd-order Biquad Bandpass Filter (Q = 15.0).
+* **Spatialization:** Equal-power key-tracked stereo panning (`cos/sin`) + decorrelated stereo courtyard/floor early reflections (L: 15/33 ms, R: 19/41 ms).
+* **MIDI Support:** Velocity-sensitive Note On/Off, Sustain Pedal (CC 64), Pitch Bend (±2 semitones), All Notes Off.
 
 ### 3. DSP PARAMETERS (12 KNOBS)
-* `Hardness`: FM peak index & decay rate map (0.0 = Soft sine, 1.0 = Spiky transient)
-* `Overtones`: Dynamic mix between 4f (center strike) and 10f (edge strike) modes
-* `Material`: Micro-detuning of standard mode ratios to simulate wood density
-* `Click/Snap`: 2.5kHz High-Pass filtered noise burst (5ms envelope) level
-* `Tube Cavity`: Volume of the 1/4-wave bandpass resonator (Q=15.0)
-* `Bar Decay`: Global amplitude macro-decay (100ms - 500ms) with high-note keytracking
-* `Membrane Buzz`: Amplitude of the pressure-gated Cachimba distortion
-* `Buzz Dynamics`: Velocity threshold required to trigger the membrane buzz
-* `Organic Drift`: Seeded `std::mt19937` randomization of pitch (±8 cents) and decay per key
-* `Ambience`: Integrated 1/4-note feedback delay simulating plaza/room reflections
-* `Spread`: Acoustic key-tracked panning width (Low notes = left, High notes = right)
-* `Volume`: Master output level pre-saturation
+* `hardness`: FM peak index & modal envelope decay rate (0.0 = soft yarn, 1.0 = hard rubber/wood)
+* `overtones`: Spectral balance between 4× mode (center strike) and 10× mode (edge strike)
+* `material`: Mode ratio carving detune around 1:4:10 (0.50 = exact 1:4:10 *Hormiguillo*)
+* `click`: 2.5 kHz High-Pass filtered mallet impact noise burst (5 ms exponential envelope)
+* `tube`: 1/4-wave bandpass resonator cavity bloom level
+* `decay`: Macro amplitude decay (100 ms – 550 ms) with strong key-tracking curve
+* `buzz`: Pressure-gated *La Cachimba* membrane rattle level
+* `buzzVel`: Velocity threshold required to engage membrane buzz
+* `organic`: Deterministic per-key detuning (±8 cents), tube/decay variance, and per-strike randomization
+* `ambience`: Stereo decorrelated early reflection room mix
+* `spread`: Equal-power acoustic key-tracked stereo panning width
+* `volume`: Smoothed master output gain
 
 ### 4. SYSTEM REQUIREMENTS
-* **macOS:** 10.15 Catalina or higher (Native Apple Silicon M1/M2/M3 & Intel).
-* **Windows:** Windows 10 / 11 (64-bit).
-* **Formats:** VST3, AU, Standalone App.
+* **macOS:** 10.15 Catalina or higher (Universal Binary: Apple Silicon & Intel) — VST3, AU, Standalone.
+* **Windows:** Windows 10 / 11 (64-bit) — VST3, Standalone.
+* **Linux:** Ubuntu 22.04+ / modern x64 distros — VST3, Standalone.
 
-> **Licenses:** Get your official license at [http://laurorobles.gumroad.com](http://laurorobles.gumroad.com)
+### 5. SOURCE CODE
+* Repository: [https://github.com/laurorobles/ExtasisMarimba](https://github.com/laurorobles/ExtasisMarimba)

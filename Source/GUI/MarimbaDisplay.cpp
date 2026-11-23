@@ -7,8 +7,8 @@ namespace ExtasisGUI
 
 MarimbaDisplay::MarimbaDisplay()
 {
+    pullBuffer.resize(pullBufferSize, 0.0f);
     scopeBuffer.resize(scopeBufferSize, 0.0f);
-    incomingFifo.resize(1024, 0.0f);
     startTimerHz(30);
 }
 
@@ -27,65 +27,64 @@ void MarimbaDisplay::setParameterReadout(const juce::String& paramName, const ju
 {
     currentParamName = paramName;
     currentValueText = valueText;
-    readoutTimeoutCounter = 90; // 3 seconds
+    readoutTimeoutCounter = 90; // 3 seconds at 30 Hz
     repaint();
 }
 
-void MarimbaDisplay::pushAudioSamples(const float* samples, int numSamples)
+void MarimbaDisplay::setModalParams(float hardness, float overtones, float tube, float buzz)
 {
-    if (samples == nullptr || numSamples <= 0)
-        return;
-
-    const juce::ScopedLock sl(fifoLock);
-    for (int i = 0; i < numSamples; ++i)
-    {
-        incomingFifo.push_back(samples[i]);
-    }
-    while (incomingFifo.size() > 2048)
-    {
-        incomingFifo.erase(incomingFifo.begin(), incomingFifo.begin() + 512);
-    }
+    paramHardness = hardness;
+    paramOvertones = overtones;
+    paramTube = tube;
+    paramBuzz = buzz;
 }
 
-void MarimbaDisplay::triggerStrikeAnimation(float hardness, float decay)
+void MarimbaDisplay::triggerStrikeAnimation(float /*hardness*/, float /*decay*/)
 {
     animDecay = 1.0f;
-    animHardness = hardness;
 }
 
 void MarimbaDisplay::timerCallback()
 {
-    animPhase += 0.08f;
-    if (animPhase > 6.283185f)
-        animPhase -= 6.283185f;
+    animPhase += 0.09f;
+    if (animPhase > juce::MathConstants<float>::twoPi)
+        animPhase -= juce::MathConstants<float>::twoPi;
 
     if (animDecay > 0.001f)
+        animDecay *= 0.88f;
+
+    // Pull real-time telemetry lock-free from AudioProcessor
+    if (onPullOutputRms)
     {
-        animDecay *= 0.90f;
+        float targetRms = juce::jlimit(0.0f, 1.0f, onPullOutputRms() * 3.2f);
+        if (targetRms > smoothedRms)
+            smoothedRms = smoothedRms * 0.35f + targetRms * 0.65f;
+        else
+            smoothedRms = smoothedRms * 0.82f + targetRms * 0.18f;
     }
 
-    // Process audio oscilloscope with zero crossing trigger
+    if (onPullActiveVoices)
+        activeVoices = onPullActiveVoices();
+
+    if (onPullScopeSamples)
     {
-        const juce::ScopedLock sl(fifoLock);
-        if (incomingFifo.size() >= (size_t)scopeBufferSize)
+        onPullScopeSamples(pullBuffer.data(), pullBufferSize);
+
+        // Zero-crossing trigger for stable waveform display
+        int triggerIdx = 0;
+        const int searchLimit = pullBufferSize - scopeBufferSize;
+        for (int i = 1; i < searchLimit; ++i)
         {
-            size_t triggerIdx = 0;
-            for (size_t i = 1; i < incomingFifo.size() - scopeBufferSize; ++i)
+            if (pullBuffer[static_cast<size_t>(i - 1)] <= 0.0f && pullBuffer[static_cast<size_t>(i)] > 0.0f)
             {
-                if (incomingFifo[i - 1] <= 0.0f && incomingFifo[i] > 0.0f)
-                {
-                    triggerIdx = i;
-                    break;
-                }
+                triggerIdx = i;
+                break;
             }
+        }
 
-            for (int i = 0; i < scopeBufferSize; ++i)
-            {
-                if (triggerIdx + i < incomingFifo.size())
-                    scopeBuffer[i] = incomingFifo[triggerIdx + i];
-            }
-
-            incomingFifo.erase(incomingFifo.begin(), incomingFifo.begin() + juce::jmin((size_t)scopeBufferSize, incomingFifo.size()));
+        for (int i = 0; i < scopeBufferSize; ++i)
+        {
+            scopeBuffer[static_cast<size_t>(i)] = pullBuffer[static_cast<size_t>(triggerIdx + i)];
         }
     }
 
@@ -94,8 +93,8 @@ void MarimbaDisplay::timerCallback()
         readoutTimeoutCounter--;
         if (readoutTimeoutCounter == 0)
         {
-            currentParamName = "MODAL PHYSICAL SYNTH";
-            currentValueText = "16-VOICE POLYPHONY";
+            currentParamName = "PHYSICAL-FM ENGINE";
+            currentValueText = "1:4:10 TUNED BAR // 16 VOICES";
         }
     }
 
@@ -113,69 +112,81 @@ void MarimbaDisplay::paint(juce::Graphics& g)
     g.drawRoundedRectangle(bounds.reduced(1.0f), 5.0f, 1.5f);
 
     // 2. LCD Screen Window
-    auto lcdArea = bounds.reduced(7.0f);
-    juce::Colour lcdDark(0xff0d1512);
-    juce::Colour lcdGlow(0xff12261a);
+    auto lcdArea = bounds.reduced(6.5f);
+    juce::Colour lcdDark(0xff0c1411);
+    juce::Colour lcdGlow(0xff122419);
     juce::ColourGradient lcdGrad(lcdDark, lcdArea.getX(), lcdArea.getY(),
-                                lcdGlow, lcdArea.getRight(), lcdArea.getBottom(), false);
+                                 lcdGlow, lcdArea.getRight(), lcdArea.getBottom(), false);
     g.setGradientFill(lcdGrad);
     g.fillRoundedRectangle(lcdArea, 4.0f);
 
     // LCD subtle scanlines
-    g.setColour(juce::Colour(0x0a38e8d8));
+    g.setColour(juce::Colour(0x0938e8d8));
     for (float y = lcdArea.getY(); y < lcdArea.getBottom(); y += 3.0f)
     {
-        g.drawHorizontalLine((int)y, lcdArea.getX(), lcdArea.getRight());
+        g.drawHorizontalLine(static_cast<int>(y), lcdArea.getX(), lcdArea.getRight());
     }
 
-    // 3. Top Header: Patch Name
-    auto headerArea = lcdArea.removeFromTop(22.0f).reduced(6.0f, 2.0f);
-    g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 12.5f, juce::Font::bold));
+    // 3. Top Header: Patch Name (Left) + Live Voice Counter (Right)
+    auto headerArea = lcdArea.removeFromTop(21.0f).reduced(6.0f, 2.0f);
+    auto voiceArea = headerArea.removeFromRight(84.0f);
+
+    g.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 11.5f, juce::Font::bold));
     g.setColour(MarimbaLookAndFeel::getBrightAmber());
     g.drawFittedText("PATCH: " + currentPatchName.toUpperCase(), headerArea.toNearestInt(), juce::Justification::left, 1);
 
-    // Top right text removed to avoid collision
+    g.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 9.5f, juce::Font::bold));
+    g.setColour(activeVoices > 0 ? MarimbaLookAndFeel::getLcdCyan() : juce::Colour(0xff4a6a66));
+    g.drawFittedText("VOICES " + juce::String(activeVoices) + "/16", voiceArea.toNearestInt(), juce::Justification::right, 1);
 
     // Divider line
     g.setColour(juce::Colour(0x2838e8d8));
-    g.drawHorizontalLine((int)lcdArea.getY(), lcdArea.getX() + 6.0f, lcdArea.getRight() - 6.0f);
+    g.drawHorizontalLine(static_cast<int>(lcdArea.getY()), lcdArea.getX() + 6.0f, lcdArea.getRight() - 6.0f);
 
     // Bottom Footer: Live Readout
-    auto footerArea = lcdArea.removeFromBottom(20.0f).reduced(6.0f, 2.0f);
+    auto footerArea = lcdArea.removeFromBottom(19.0f).reduced(6.0f, 1.0f);
     g.setColour(juce::Colour(0x2038e8d8));
-    g.drawHorizontalLine((int)footerArea.getY(), lcdArea.getX() + 6.0f, lcdArea.getRight() - 6.0f);
-    
-    g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 10.5f, juce::Font::bold));
+    g.drawHorizontalLine(static_cast<int>(footerArea.getY()), lcdArea.getX() + 6.0f, lcdArea.getRight() - 6.0f);
+
+    g.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 10.0f, juce::Font::bold));
     g.setColour(MarimbaLookAndFeel::getLcdCyan());
     g.drawFittedText(currentParamName + "  |  " + currentValueText, footerArea.toNearestInt(), juce::Justification::left, 1);
 
-    // 4. Middle Area: Left (Oscilloscope) & Right (Modal Bars)
-    auto middleArea = lcdArea.reduced(6.0f, 2.0f);
-    auto rightModalArea = middleArea.removeFromRight(middleArea.getWidth() * 0.40f);
-    auto rightScopeArea = middleArea; // It's actually the left area now, but we keep the variable name for the code below
-    auto leftModalArea = rightModalArea;
-    leftModalArea.translate(4.0f, 0.0f);
+    // 4. Middle Area: Left (Oscilloscope) & Right (Live Modal/Tube/Buzz Meters)
+    auto middleArea = lcdArea.reduced(6.0f, 3.0f);
+    auto modalArea = middleArea.removeFromRight(middleArea.getWidth() * 0.42f);
+    auto scopeArea = middleArea;
+    modalArea.translate(4.0f, 0.0f);
 
-    // --- LEFT: 5 Modal Resonator Bars ---
-    g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 8.5f, juce::Font::bold));
+    // --- RIGHT: 5 Live Physical Energy Bars ---
+    g.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 8.0f, juce::Font::bold));
     g.setColour(juce::Colour(0xff557788));
-    g.drawText("MODAL RESONATORS", leftModalArea.removeFromTop(11.0f), juce::Justification::centred, false);
+    g.drawText("1:4:10 MODES & CAVITY", modalArea.removeFromTop(11.0f), juce::Justification::centred, false);
 
-    float barWidth = 14.0f;
-    float spacing = 12.0f;
+    float barWidth = 16.0f;
+    float spacing = 10.0f;
     float totalWidthNeeded = (barWidth * 5.0f) + (spacing * 4.0f);
-    float startX = leftModalArea.getX() + (leftModalArea.getWidth() - totalWidthNeeded) * 0.5f;
-    
-    float heights[5] = { 0.88f, 0.65f, 0.45f, 0.30f, 0.55f };
-    const char* labels[5] = { "f0", "4f0", "9.2f", "16f", "PIPE" };
+    float startX = modalArea.getX() + (modalArea.getWidth() - totalWidthNeeded) * 0.5f;
 
-    float barBaseY = leftModalArea.getBottom() - 13.0f;
-    float maxBarH = leftModalArea.getHeight() - 16.0f;
+    float energy = juce::jlimit(0.0f, 1.0f, std::max(smoothedRms, animDecay * 0.55f));
+    float barWeights[5] = {
+        0.92f,                                                  // f0 fundamental
+        0.25f + paramHardness * 0.55f * (1.0f - paramOvertones * 0.4f), // 4f0 mode
+        0.15f + paramOvertones * 0.75f * (0.4f + paramHardness * 0.6f), // 10f0 mode
+        0.15f + paramTube * 0.80f,                              // Resonator Tube
+        0.10f + paramBuzz * 0.85f                               // Cachimba Buzz
+    };
+    const char* labels[5] = { "f0", "4f", "10f", "TUBE", "BUZZ" };
+
+    float barBaseY = modalArea.getBottom() - 12.0f;
+    float maxBarH = std::max(10.0f, modalArea.getHeight() - 14.0f);
 
     for (int i = 0; i < 5; ++i)
     {
         float bx = startX + static_cast<float>(i) * (barWidth + spacing);
-        float currentH = maxBarH * heights[i] * (0.35f + animDecay * 0.65f + std::sin(animPhase + i * 1.2f) * 0.04f);
+        float idleShimmer = 0.03f * std::sin(animPhase + static_cast<float>(i) * 1.1f);
+        float level = juce::jlimit(0.06f, 1.0f, barWeights[i] * (0.20f + energy * 0.80f) + idleShimmer);
+        float currentH = maxBarH * level;
         float by = barBaseY - currentH;
 
         // Background slot
@@ -183,50 +194,54 @@ void MarimbaDisplay::paint(juce::Graphics& g)
         g.fillRoundedRectangle(bx, barBaseY - maxBarH, barWidth, maxBarH, 2.0f);
 
         // Active Bar Fill Gradient
-        juce::Colour barCol = (i == 4) ? MarimbaLookAndFeel::getWoodWarmth() : MarimbaLookAndFeel::getLcdCyan();
-        g.setGradientFill(juce::ColourGradient(barCol.brighter(0.4f), bx, by,
-                                               barCol.darker(0.6f), bx, barBaseY, false));
+        juce::Colour barCol = (i == 3) ? MarimbaLookAndFeel::getWoodWarmth()
+                            : (i == 4) ? MarimbaLookAndFeel::getAmberGold()
+                            : MarimbaLookAndFeel::getLcdCyan();
+        g.setGradientFill(juce::ColourGradient(barCol.brighter(0.35f), bx, by,
+                                               barCol.darker(0.60f), bx, barBaseY, false));
         g.fillRoundedRectangle(bx, by, barWidth, currentH, 2.0f);
 
         // Top glow cap
-        g.setColour(barCol.brighter(0.8f));
+        g.setColour(barCol.brighter(0.85f));
         g.fillRect(bx + 1.0f, by, barWidth - 2.0f, 2.0f);
 
         // Label
-        g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 8.0f, juce::Font::bold));
+        g.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 7.8f, juce::Font::bold));
         g.setColour(juce::Colour(0xff88a0b0));
-        g.drawText(labels[i], bx - 4.0f, barBaseY + 2.0f, barWidth + 8.0f, 10.0f, juce::Justification::centred, false);
+        g.drawText(labels[i], static_cast<int>(bx - 5.0f), static_cast<int>(barBaseY + 2.0f),
+                   static_cast<int>(barWidth + 10.0f), 10, juce::Justification::centred, false);
     }
 
     // Divider Line
     g.setColour(juce::Colour(0x2238e8d8));
-    g.drawVerticalLine((int)(rightScopeArea.getRight() + 4.0f), middleArea.getY(), middleArea.getBottom());
+    g.drawVerticalLine(static_cast<int>(scopeArea.getRight() + 3.0f), middleArea.getY(), middleArea.getBottom());
 
-    // --- RIGHT: Real-time Oscilloscope (Scope Buffer) ---
-    g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), 8.5f, juce::Font::bold));
+    // --- LEFT: Real-time Oscilloscope ---
+    g.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 8.0f, juce::Font::bold));
     g.setColour(juce::Colour(0xff557788));
-    g.drawText("OUTPUT OSCILLOSCOPE", rightScopeArea.removeFromTop(11.0f), juce::Justification::left, false);
+    g.drawText("OUTPUT OSCILLOSCOPE", scopeArea.removeFromTop(11.0f), juce::Justification::left, false);
 
     // Scope Frame
     g.setColour(juce::Colour(0x1238e8d8));
-    g.fillRect(rightScopeArea);
+    g.fillRect(scopeArea);
     g.setColour(juce::Colour(0x2438e8d8));
-    g.drawRect(rightScopeArea, 1.0f);
+    g.drawRect(scopeArea, 1.0f);
 
-    // Center baseline
-    float midY = rightScopeArea.getCentreY();
-    g.setColour(juce::Colour(0x2038e8d8));
-    g.drawHorizontalLine((int)midY, rightScopeArea.getX(), rightScopeArea.getRight());
+    // Subtle gridlines
+    float midY = scopeArea.getCentreY();
+    g.setColour(juce::Colour(0x1838e8d8));
+    g.drawHorizontalLine(static_cast<int>(midY), scopeArea.getX(), scopeArea.getRight());
+    g.drawVerticalLine(static_cast<int>(scopeArea.getCentreX()), scopeArea.getY(), scopeArea.getBottom());
 
     // Draw Vector Waveform Path
     juce::Path wavePath;
-    float xStep = rightScopeArea.getWidth() / (float)scopeBufferSize;
-    float yHalf = rightScopeArea.getHeight() * 0.44f;
+    float xStep = scopeArea.getWidth() / static_cast<float>(scopeBufferSize - 1);
+    float yHalf = scopeArea.getHeight() * 0.44f;
 
     for (int i = 0; i < scopeBufferSize; ++i)
     {
-        float x = rightScopeArea.getX() + i * xStep;
-        float sample = juce::jlimit(-1.0f, 1.0f, scopeBuffer[i]);
+        float x = scopeArea.getX() + static_cast<float>(i) * xStep;
+        float sample = juce::jlimit(-1.0f, 1.0f, scopeBuffer[static_cast<size_t>(i)] * 1.35f);
         float y = midY - sample * yHalf;
 
         if (i == 0)
@@ -235,13 +250,13 @@ void MarimbaDisplay::paint(juce::Graphics& g)
             wavePath.lineTo(x, y);
     }
 
-    // Phosphor glow (thick background trace)
+    // Phosphor glow
     g.setColour(MarimbaLookAndFeel::getAmberGold().withAlpha(0.35f));
-    g.strokePath(wavePath, juce::PathStrokeType(3.5f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+    g.strokePath(wavePath, juce::PathStrokeType(3.2f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
 
     // Sharp bright trace
     g.setColour(MarimbaLookAndFeel::getBrightAmber());
-    g.strokePath(wavePath, juce::PathStrokeType(1.6f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+    g.strokePath(wavePath, juce::PathStrokeType(1.5f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
 }
 
 } // namespace ExtasisGUI

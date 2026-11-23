@@ -57,25 +57,25 @@ jobs:
         shell: bash
         run: |
           mkdir -p artifacts
-          
+
           # VST3
           find build -type d -name "*.vst3" -exec cp -r {} artifacts/ \; 2>/dev/null || true
           find build -type f -name "*.vst3" -exec cp -r {} artifacts/ \; 2>/dev/null || true
-          
+
           # Standalone & CLAP
           find build -type f -name "*.exe" -exec cp {} artifacts/ \; 2>/dev/null || true
           find build -type f -name "*.clap" -exec cp {} artifacts/ \; 2>/dev/null || true
-          
+
           # Linux Standalone
           find build -type f -executable -name "Extasis*" -exec cp {} artifacts/ \; 2>/dev/null || true
 
-          # Docs & Installers
+          # Docs, License & Installers
           if [ -d "installer" ]; then
             cp -r installer artifacts/
             chmod +x artifacts/installer/INSTALL_LINUX.sh 2>/dev/null || true
           fi
           cp install_windows.bat artifacts/ 2>/dev/null || true
-          for doc in MANUAL.md README.md PRESENTATION.md TECHNICAL.md FICHA_TECNICA.md ARCHITECTURE.md RELEASE_RULES.md CHANGELOG.md; do
+          for doc in LICENSE MANUAL.md README.md PRESENTATION.md TECHNICAL.md CHANGELOG.md; do
             if [ -f "$doc" ]; then cp "$doc" artifacts/; fi
           done
 
@@ -119,33 +119,30 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "Extasis Marimba ${{ github.ref_name }}"
+          name: "Extasis Marimba ${{ github.ref_name }} (Free & Open Source)"
           body: |
-            ### 🚀 Lanzamiento Oficial ${{ github.ref_name }}
-            
-            Este release incluye los binarios e instaladores oficiales para **Extasis Marimba** en macOS, Windows y Linux.
-            
-            #### 📦 Descarga Directa de Binarios:
-            - 🍏 **[Descargar para macOS (VST3 / AU / Standalone)](https://github.com/laurorobles/ExtasisMarimba/releases/download/${{ github.ref_name }}/ExtasisMarimba-macOS.zip)** (Universal Binary arm64 + x86_64)
-            - 🪟 **[Descargar para Windows (VST3 / Standalone)](https://github.com/laurorobles/ExtasisMarimba/releases/download/${{ github.ref_name }}/ExtasisMarimba-Windows.zip)** (x64)
-            - 🐧 **[Descargar para Linux (VST3 / Standalone)](https://github.com/laurorobles/ExtasisMarimba/releases/download/${{ github.ref_name }}/ExtasisMarimba-Linux.zip)** (x64)
-            
+            ### 🪵 Extasis Marimba ${{ github.ref_name }} — 100% Free & Open Source (GPLv3)
+
+            **Extasis Marimba** is now completely **free and open source** under the **GNU General Public License v3.0** — no DRM, no demo timers, no serial keys!
+
+            #### 📦 Direct Binary Downloads:
+            - 🍏 **[Download for macOS (VST3 / AU / Standalone)](https://github.com/laurorobles/ExtasisMarimba/releases/download/${{ github.ref_name }}/ExtasisMarimba-macOS.zip)** (Apple Silicon & Intel)
+            - 🪟 **[Download for Windows (VST3 / Standalone)](https://github.com/laurorobles/ExtasisMarimba/releases/download/${{ github.ref_name }}/ExtasisMarimba-Windows.zip)** (x64)
+            - 🐧 **[Download for Linux (VST3 / Standalone)](https://github.com/laurorobles/ExtasisMarimba/releases/download/${{ github.ref_name }}/ExtasisMarimba-Linux.zip)** (x64)
+
             ---
-            
-            **Novedades en ${{ github.ref_name }}:**
-            - 🪵 **Afinación de Maderas 1:4:10:** Modos inarmónicos basados en maderas talladas de hormiguillo (Fundamental, 4.0× octava, 10.0× doble octava + tercera).
-            - 🎚️ **Paneo Acústico por Nota (Key-Tracked Panning):** Graves a la izquierda, agudos a la derecha, controlable con `SPREAD`.
-            - ⏱️ **Decay Acústico Progresivo:** Los agudos decaen de inmediato ("tock" seco) mientras los graves sostienen con riqueza armónica.
-            - 🐝 **La Cachimba (Membrana de Tripa y Cera):** Ruido dinámico excitado por velocidad acústica y resonancia de tubo.
-            - 🎨 **40 Presets de Fábrica:** 4 familias especializadas (Folklore Tradicional, Latin Club / Urbano, Concierto / Mundo, Experimental).
-            - 🖥️ **Interfaz Expandida (660×410 px):** Márgenes amplios, etiquetas en inglés, menú de presets ensanchado con botón `SAVE`.
-            - ⏱️ **Modo Evaluación / Demo:** Sesión de 10 minutos con silenciado automático, reiniciable al recargar el plugin.
-            
+
+            ### ✨ What's New in ${{ github.ref_name }}
+            - 🔓 **100% Free & Open Source (GPLv3):** Removed all licensing overlays, serial checks, and 10-minute demo limits.
+            - ⚡ **Lock-Free Real-Time DSP Engine:** Replaced mutex-locked oscilloscope & `rand()` calls with a zero-allocation SPSC ring buffer and per-voice `XorShift32` PRNGs.
+            - 🎚️ **Equal-Power Panning & Stereo Courtyard Ambience:** Upgraded to proper equal-power key-tracked panning and decorrelated dual-channel room reflections.
+            - 🎹 **Expressive MIDI & Smart Voice Stealing:** Added Sustain Pedal (CC 64), Pitch Bend (±2 semitones), Nyquist-safe filtering up to 192 kHz, and quietest-voice stealing.
+            - 🖥️ **Upgraded 680×420 Studio GUI:** Symmetrical 3-module layout, restored `SAVE` preset button (fixing the 40-preset user offset bug), new `INIT` & `RND` (musical randomizer) buttons, double-click knob reset, live `VOICES X/16` counter, dynamic 1:4:10 modal meters, and live `PAD: C4` pitch badge.
+
             ---
-            
-            ### 🔑 Licencia y Activación
-            Consigue tu clave de licencia oficial en **[Gumroad](http://laurorobles.gumroad.com)**.
-            *El plugin funcionará en modo demo (silenciado a los 10 minutos de uso continuo) hasta ingresar la licencia.*
+
+            ### ❤️ Support Independent Audio Software
+            Extasis Marimba is free forever. If you love it, star this repo or check out **[Extasis Records on Bandcamp](https://extasisrecords.bandcamp.com)**.
           generate_release_notes: true
           files: final-assets/*
         env:

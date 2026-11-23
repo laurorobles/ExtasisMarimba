@@ -1,6 +1,6 @@
 #!/bin/bash
 echo "============================================================"
-echo " ExtasisMarimba - Linux Automated Installer"
+echo " Extasis Marimba - Linux Automated Installer"
 echo "============================================================"
 
 INSTALL_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -9,14 +9,20 @@ CLAP_DIR="$HOME/.clap"
 
 echo "[1/2] Installing VST3 Plugin to $VST3_DIR..."
 mkdir -p "$VST3_DIR"
-if [ -d "$INSTALL_DIR/ExtasisMarimba.vst3" ]; then
-    cp -R "$INSTALL_DIR/ExtasisMarimba.vst3" "$VST3_DIR/"
+if [ -d "$INSTALL_DIR/Extasis Marimba.vst3" ]; then
+    rm -rf "$VST3_DIR/ExtasisMarimba.vst3" "$VST3_DIR/Extasis Marimba.vst3"
+    cp -R "$INSTALL_DIR/Extasis Marimba.vst3" "$VST3_DIR/"
+elif [ -d "$INSTALL_DIR/../Extasis Marimba.vst3" ]; then
+    rm -rf "$VST3_DIR/ExtasisMarimba.vst3" "$VST3_DIR/Extasis Marimba.vst3"
+    cp -R "$INSTALL_DIR/../Extasis Marimba.vst3" "$VST3_DIR/"
 fi
 
 echo "[2/2] Installing CLAP Plugin to $CLAP_DIR..."
 mkdir -p "$CLAP_DIR"
-if [ -f "$INSTALL_DIR/ExtasisMarimba.clap" ]; then
-    cp "$INSTALL_DIR/ExtasisMarimba.clap" "$CLAP_DIR/"
+if [ -f "$INSTALL_DIR/Extasis Marimba.clap" ]; then
+    cp "$INSTALL_DIR/Extasis Marimba.clap" "$CLAP_DIR/"
+elif [ -f "$INSTALL_DIR/../Extasis Marimba.clap" ]; then
+    cp "$INSTALL_DIR/../Extasis Marimba.clap" "$CLAP_DIR/"
 fi
 
 echo ""

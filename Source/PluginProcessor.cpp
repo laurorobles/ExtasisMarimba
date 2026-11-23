@@ -1,65 +1,54 @@
-#include "LicenseManager.h"
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include <cmath>
 
 ExtasisMarimbaAudioProcessor::ExtasisMarimbaAudioProcessor()
     : AudioProcessor(BusesProperties()
                      .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
       apvts(*this, nullptr, "Parameters", createParameterLayout())
 {
-    apvts.state = juce::ValueTree("Parameters");
-    checkLicenseState();
 }
 
 ExtasisMarimbaAudioProcessor::~ExtasisMarimbaAudioProcessor()
 {
 }
 
-void ExtasisMarimbaAudioProcessor::checkLicenseState()
-{
-    isPluginLicensed = LicenseManager::isLicensed();
-    if (isPluginLicensed)
-    {
-        isExpired = false;
-    }
-}
-
 juce::AudioProcessorValueTreeState::ParameterLayout ExtasisMarimbaAudioProcessor::createParameterLayout()
 {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
 
-    // 1. La Madera
-    params.push_back(std::make_unique<juce::AudioParameterFloat>("hardness", "Hardness", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.65f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>("overtones", "Overtones", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.50f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>("material", "Material", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.50f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>("click", "Click / Snap", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.30f));
+    // 1. Wooden Bar
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("hardness",  "Hardness",      juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.65f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("overtones", "Overtones",     juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.40f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("material",  "Material",      juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.50f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("click",     "Click / Snap",  juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.35f));
 
-    // 2. El Cajon
-    params.push_back(std::make_unique<juce::AudioParameterFloat>("tube", "Tube Cavity", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.70f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>("decay", "Bar Decay", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.50f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>("buzz", "Membrane Buzz", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.50f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>("buzzVel", "Buzz Dynamics", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.80f));
+    // 2. Resonator Tube
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("tube",      "Tube Cavity",   juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.85f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("decay",     "Bar Decay",     juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.55f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("buzz",      "Membrane Buzz", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.60f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("buzzVel",   "Buzz Dynamics", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.65f));
 
-    // 3. El Entorno
-    params.push_back(std::make_unique<juce::AudioParameterFloat>("organic", "Organic Drift", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.40f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>("ambience", "Ambience", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.30f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>("spread", "Spread", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.50f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>("volume", "Master Vol", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.85f));
+    // 3. Environment
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("organic",   "Organic Drift", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.45f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("ambience",  "Ambience",      juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.25f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("spread",    "Spread",        juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.60f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("volume",    "Master Vol",    juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.85f));
 
     return { params.begin(), params.end() };
 }
 
-const juce::String ExtasisMarimbaAudioProcessor::getName() const { return "ExtasisMarimba"; }
+const juce::String ExtasisMarimbaAudioProcessor::getName() const { return "Extasis Marimba"; }
 bool ExtasisMarimbaAudioProcessor::acceptsMidi() const { return true; }
 bool ExtasisMarimbaAudioProcessor::producesMidi() const { return false; }
 bool ExtasisMarimbaAudioProcessor::isMidiEffect() const { return false; }
-double ExtasisMarimbaAudioProcessor::getTailLengthSeconds() const { return 0.5; }
+double ExtasisMarimbaAudioProcessor::getTailLengthSeconds() const { return 3.5; }
 
 juce::StringArray ExtasisMarimbaAudioProcessor::getFactoryPresetNames()
 {
     return {
-        // Traditional Mexican & Chiapaneca (01 - 08)
-                "01. Chiapas Cachimba Marimba",
+        // Traditional Mexican & Chiapaneca (01 - 10)
+        "01. Chiapas Cachimba Marimba",
         "02. Hormiguillo Fiesta Marimba",
         "03. Marimba de Pueblo (Vintage)",
         "04. Zapateado Veracruzano",
@@ -104,7 +93,7 @@ juce::StringArray ExtasisMarimbaAudioProcessor::getFactoryPresetNames()
         "37. Space Echo Chamber Bar",
         "38. Extasis Anthem Marimba",
         "39. Frozen Cavern Crystals",
-        "40. Granular Destroyed Wood" 
+        "40. Granular Destroyed Wood"
     };
 }
 
@@ -156,15 +145,16 @@ void ExtasisMarimbaAudioProcessor::changeProgramName(int index, const juce::Stri
 
 bool ExtasisMarimbaAudioProcessor::saveUserPreset(const juce::String& presetName)
 {
-    if (presetName.trim().isEmpty())
+    auto cleanName = juce::File::createLegalFileName(presetName.trim());
+    if (cleanName.isEmpty())
         return false;
 
     auto dir = getPresetsDirectory();
-    auto file = dir.getChildFile(presetName.trim() + ".empreset");
+    auto file = dir.getChildFile(cleanName + ".empreset");
 
     auto state = apvts.copyState();
     std::unique_ptr<juce::XmlElement> xml(state.createXml());
-    return xml->writeTo(file);
+    return xml != nullptr && xml->writeTo(file);
 }
 
 bool ExtasisMarimbaAudioProcessor::deleteUserPreset(const juce::String& presetName)
@@ -176,23 +166,76 @@ bool ExtasisMarimbaAudioProcessor::deleteUserPreset(const juce::String& presetNa
     return false;
 }
 
+void ExtasisMarimbaAudioProcessor::initParameters()
+{
+    auto setVal = [this](const juce::String& paramId, float val) {
+        if (auto* param = apvts.getParameter(paramId))
+            param->setValueNotifyingHost(param->getNormalisableRange().convertTo0to1(val));
+    };
+
+    setVal("hardness", 0.55f);  setVal("overtones", 0.35f); setVal("material", 0.50f); setVal("click", 0.25f);
+    setVal("tube",     0.80f);  setVal("decay",     0.55f); setVal("buzz",     0.00f); setVal("buzzVel", 0.80f);
+    setVal("organic",  0.15f);  setVal("ambience",  0.25f); setVal("spread",   0.60f); setVal("volume", 0.85f);
+}
+
+void ExtasisMarimbaAudioProcessor::randomizeParameters()
+{
+    auto& rng = juce::Random::getSystemRandom();
+    auto randRange = [&rng](float lo, float hi) { return lo + rng.nextFloat() * (hi - lo); };
+    auto setVal = [this](const juce::String& paramId, float val) {
+        if (auto* param = apvts.getParameter(paramId))
+            param->setValueNotifyingHost(param->getNormalisableRange().convertTo0to1(val));
+    };
+
+    // Musically constrained randomization so every patch sounds playable
+    setVal("hardness",  randRange(0.15f, 0.98f));
+    setVal("overtones", randRange(0.10f, 0.95f));
+    setVal("material",  randRange(0.30f, 0.85f));
+    setVal("click",     randRange(0.05f, 0.85f));
+    setVal("tube",      randRange(0.35f, 1.00f));
+    setVal("decay",     randRange(0.18f, 0.90f));
+    setVal("buzz",      rng.nextFloat() < 0.55f ? randRange(0.0f, 0.90f) : 0.0f);
+    setVal("buzzVel",   randRange(0.25f, 0.95f));
+    setVal("organic",   randRange(0.00f, 0.85f));
+    setVal("ambience",  randRange(0.10f, 0.75f));
+    setVal("spread",    randRange(0.25f, 0.95f));
+    // Keep Master Volume unchanged for ear safety!
+}
+
 void ExtasisMarimbaAudioProcessor::triggerAuditionNote(int noteNumber, float velocity)
 {
-    int nextW = (fifoWriteIdx.load() + 1) % FIFO_SIZE;
-    if (nextW != fifoReadIdx.load())
+    int write = fifoWriteIdx.load(std::memory_order_relaxed);
+    int nextW = (write + 1) % FIFO_SIZE;
+    if (nextW != fifoReadIdx.load(std::memory_order_acquire))
     {
-        triggerFifo[fifoWriteIdx.load()] = { noteNumber, velocity, true };
-        fifoWriteIdx.store(nextW);
+        triggerFifo[static_cast<size_t>(write)] = { noteNumber, velocity, true };
+        fifoWriteIdx.store(nextW, std::memory_order_release);
     }
 }
 
 void ExtasisMarimbaAudioProcessor::releaseAuditionNote(int noteNumber)
 {
-    int nextW = (fifoWriteIdx.load() + 1) % FIFO_SIZE;
-    if (nextW != fifoReadIdx.load())
+    int write = fifoWriteIdx.load(std::memory_order_relaxed);
+    int nextW = (write + 1) % FIFO_SIZE;
+    if (nextW != fifoReadIdx.load(std::memory_order_acquire))
     {
-        triggerFifo[fifoWriteIdx.load()] = { noteNumber, 0.0f, false };
-        fifoWriteIdx.store(nextW);
+        triggerFifo[static_cast<size_t>(write)] = { noteNumber, 0.0f, false };
+        fifoWriteIdx.store(nextW, std::memory_order_release);
+    }
+}
+
+void ExtasisMarimbaAudioProcessor::copyScopeSamples(float* dest, int numSamples) const
+{
+    if (dest == nullptr || numSamples <= 0)
+        return;
+
+    int count = std::min(numSamples, SCOPE_RING_SIZE);
+    int wp = scopeWritePos.load(std::memory_order_acquire);
+    int start = (wp - count + SCOPE_RING_SIZE) % SCOPE_RING_SIZE;
+
+    for (int i = 0; i < count; ++i)
+    {
+        dest[i] = scopeRingBuffer[static_cast<size_t>((start + i) % SCOPE_RING_SIZE)];
     }
 }
 
@@ -205,10 +248,11 @@ void ExtasisMarimbaAudioProcessor::loadPreset(int presetIndex)
             param->setValueNotifyingHost(param->getNormalisableRange().convertTo0to1(val));
     };
 
-    // User Preset Loading
-    if (presetIndex >= 30)
+    // User Preset Loading (after all 40 factory presets)
+    const int numFactory = getFactoryPresetNames().size();
+    if (presetIndex >= numFactory)
     {
-        int userIndex = presetIndex - 30;
+        int userIndex = presetIndex - numFactory;
         auto dir = getPresetsDirectory();
         if (dir.isDirectory())
         {
@@ -231,42 +275,42 @@ void ExtasisMarimbaAudioProcessor::loadPreset(int presetIndex)
     switch (presetIndex)
     {
         // --- Traditional Mexican & Chiapaneca (01 - 10) ---
-        case 0: // 01. Chiapas Cachimba Marimba 
+        case 0: // 01. Chiapas Cachimba Marimba
             setVal("hardness", 0.65f); setVal("overtones", 0.40f); setVal("material", 0.52f); setVal("click", 0.35f);
             setVal("tube", 0.85f); setVal("decay", 0.55f); setVal("buzz", 0.60f); setVal("buzzVel", 0.65f);
             setVal("organic", 0.45f); setVal("ambience", 0.25f); setVal("spread", 0.60f); setVal("volume", 0.85f);
             break;
-        case 1: // 02. Hormiguillo Fiesta Marimba 
+        case 1: // 02. Hormiguillo Fiesta Marimba
             setVal("hardness", 0.80f); setVal("overtones", 0.60f); setVal("material", 0.48f); setVal("click", 0.55f);
             setVal("tube", 0.70f); setVal("decay", 0.45f); setVal("buzz", 0.50f); setVal("buzzVel", 0.75f);
             setVal("organic", 0.35f); setVal("ambience", 0.35f); setVal("spread", 0.70f); setVal("volume", 0.85f);
             break;
-        case 2: // 03. Marimba de Pueblo (Vintage) 
+        case 2: // 03. Marimba de Pueblo (Vintage)
             setVal("hardness", 0.60f); setVal("overtones", 0.35f); setVal("material", 0.80f); setVal("click", 0.45f);
             setVal("tube", 0.60f); setVal("decay", 0.30f); setVal("buzz", 0.85f); setVal("buzzVel", 0.30f);
             setVal("organic", 0.95f); setVal("ambience", 0.40f); setVal("spread", 0.25f); setVal("volume", 0.88f);
             break;
-        case 3: // 04. Zapateado Veracruzano 
+        case 3: // 04. Zapateado Veracruzano
             setVal("hardness", 0.95f); setVal("overtones", 0.75f); setVal("material", 0.60f); setVal("click", 0.80f);
             setVal("tube", 0.50f); setVal("decay", 0.25f); setVal("buzz", 0.75f); setVal("buzzVel", 0.55f);
             setVal("organic", 0.50f); setVal("ambience", 0.15f); setVal("spread", 0.50f); setVal("volume", 0.85f);
             break;
-        case 4: // 05. Son Jarocho Wooden Bar 
+        case 4: // 05. Son Jarocho Wooden Bar
             setVal("hardness", 0.75f); setVal("overtones", 0.55f); setVal("material", 0.55f); setVal("click", 0.40f);
             setVal("tube", 0.40f); setVal("decay", 0.40f); setVal("buzz", 0.40f); setVal("buzzVel", 0.70f);
             setVal("organic", 0.65f); setVal("ambience", 0.30f); setVal("spread", 0.65f); setVal("volume", 0.85f);
             break;
-        case 5: // 06. Tuxtla Gutierrez Twilight 
+        case 5: // 06. Tuxtla Gutierrez Twilight
             setVal("hardness", 0.35f); setVal("overtones", 0.25f); setVal("material", 0.45f); setVal("click", 0.15f);
             setVal("tube", 0.95f); setVal("decay", 0.75f); setVal("buzz", 0.30f); setVal("buzzVel", 0.85f);
             setVal("organic", 0.40f); setVal("ambience", 0.55f); setVal("spread", 0.80f); setVal("volume", 0.85f);
             break;
-        case 6: // 07. Oaxacan Village Mallet 
+        case 6: // 07. Oaxacan Village Mallet
             setVal("hardness", 0.70f); setVal("overtones", 0.45f); setVal("material", 0.65f); setVal("click", 0.60f);
             setVal("tube", 0.80f); setVal("decay", 0.50f); setVal("buzz", 0.55f); setVal("buzzVel", 0.50f);
             setVal("organic", 0.85f); setVal("ambience", 0.35f); setVal("spread", 0.40f); setVal("volume", 0.85f);
             break;
-        case 7: // 08. Chiapaneca Raw Membrane 
+        case 7: // 08. Chiapaneca Raw Membrane
             setVal("hardness", 0.85f); setVal("overtones", 0.65f); setVal("material", 0.50f); setVal("click", 0.50f);
             setVal("tube", 0.90f); setVal("decay", 0.45f); setVal("buzz", 1.0f); setVal("buzzVel", 0.40f);
             setVal("organic", 0.50f); setVal("ambience", 0.20f); setVal("spread", 0.60f); setVal("volume", 0.85f);
@@ -283,42 +327,42 @@ void ExtasisMarimbaAudioProcessor::loadPreset(int presetIndex)
             break;
 
         // --- Latin Club, Cumbia & Bass (11 - 20) ---
-        case 10: // 11. Deep Latin Club Pluck 
+        case 10: // 11. Deep Latin Club Pluck
             setVal("hardness", 0.90f); setVal("overtones", 0.85f); setVal("material", 0.40f); setVal("click", 0.70f);
             setVal("tube", 0.75f); setVal("decay", 0.20f); setVal("buzz", 0.0f); setVal("buzzVel", 1.0f);
             setVal("organic", 0.05f); setVal("ambience", 0.15f); setVal("spread", 0.30f); setVal("volume", 0.90f);
             break;
-        case 11: // 12. Cumbia Rebajada Low End 
+        case 11: // 12. Cumbia Rebajada Low End
             setVal("hardness", 0.20f); setVal("overtones", 0.10f); setVal("material", 0.50f); setVal("click", 0.10f);
             setVal("tube", 1.0f); setVal("decay", 0.85f); setVal("buzz", 0.15f); setVal("buzzVel", 0.90f);
             setVal("organic", 0.20f); setVal("ambience", 0.25f); setVal("spread", 0.50f); setVal("volume", 0.90f);
             break;
-        case 12: // 13. Hypnotic Cumbia Mallet 
+        case 12: // 13. Hypnotic Cumbia Mallet
             setVal("hardness", 0.60f); setVal("overtones", 0.50f); setVal("material", 0.50f); setVal("click", 0.40f);
             setVal("tube", 0.80f); setVal("decay", 0.45f); setVal("buzz", 0.25f); setVal("buzzVel", 0.80f);
             setVal("organic", 0.15f); setVal("ambience", 0.30f); setVal("spread", 0.45f); setVal("volume", 0.88f);
             break;
-        case 13: // 14. Latin House Strike 
+        case 13: // 14. Latin House Strike
             setVal("hardness", 1.0f); setVal("overtones", 0.95f); setVal("material", 0.60f); setVal("click", 0.90f);
             setVal("tube", 0.60f); setVal("decay", 0.30f); setVal("buzz", 0.0f); setVal("buzzVel", 1.0f);
             setVal("organic", 0.0f); setVal("ambience", 0.40f); setVal("spread", 0.95f); setVal("volume", 0.88f);
             break;
-        case 14: // 15. Tribal Guarachero Mallet 
+        case 14: // 15. Tribal Guarachero Mallet
             setVal("hardness", 0.95f); setVal("overtones", 0.70f); setVal("material", 0.85f); setVal("click", 0.85f);
             setVal("tube", 0.70f); setVal("decay", 0.25f); setVal("buzz", 0.45f); setVal("buzzVel", 0.60f);
             setVal("organic", 0.10f); setVal("ambience", 0.10f); setVal("spread", 0.25f); setVal("volume", 0.88f);
             break;
-        case 15: // 16. Afro-Cuban Bembe Bar 
+        case 15: // 16. Afro-Cuban Bembe Bar
             setVal("hardness", 0.55f); setVal("overtones", 0.35f); setVal("material", 0.55f); setVal("click", 0.45f);
             setVal("tube", 0.85f); setVal("decay", 0.50f); setVal("buzz", 0.10f); setVal("buzzVel", 0.90f);
             setVal("organic", 0.40f); setVal("ambience", 0.25f); setVal("spread", 0.50f); setVal("volume", 0.85f);
             break;
-        case 16: // 17. Reggaeton Mallet Lead 
+        case 16: // 17. Reggaeton Mallet Lead
             setVal("hardness", 0.85f); setVal("overtones", 0.80f); setVal("material", 0.50f); setVal("click", 0.75f);
             setVal("tube", 0.75f); setVal("decay", 0.35f); setVal("buzz", 0.0f); setVal("buzzVel", 1.0f);
             setVal("organic", 0.05f); setVal("ambience", 0.20f); setVal("spread", 0.65f); setVal("volume", 0.88f);
             break;
-        case 17: // 18. Baile Funk Punch Bar 
+        case 17: // 18. Baile Funk Punch Bar
             setVal("hardness", 1.0f); setVal("overtones", 0.90f); setVal("material", 0.40f); setVal("click", 1.0f);
             setVal("tube", 0.50f); setVal("decay", 0.15f); setVal("buzz", 0.20f); setVal("buzzVel", 0.70f);
             setVal("organic", 0.0f); setVal("ambience", 0.05f); setVal("spread", 0.20f); setVal("volume", 0.92f);
@@ -335,32 +379,32 @@ void ExtasisMarimbaAudioProcessor::loadPreset(int presetIndex)
             break;
 
         // --- Concert, Acoustic & Traditional World (21 - 30) ---
-        case 20: // 21. Clean Concert Rosewood 
+        case 20: // 21. Clean Concert Rosewood
             setVal("hardness", 0.40f); setVal("overtones", 0.25f); setVal("material", 0.50f); setVal("click", 0.15f);
             setVal("tube", 0.95f); setVal("decay", 0.65f); setVal("buzz", 0.0f); setVal("buzzVel", 1.0f);
             setVal("organic", 0.02f); setVal("ambience", 0.45f); setVal("spread", 0.80f); setVal("volume", 0.85f);
             break;
-        case 21: // 22. Soft Felt Warmth 
+        case 21: // 22. Soft Felt Warmth
             setVal("hardness", 0.10f); setVal("overtones", 0.05f); setVal("material", 0.50f); setVal("click", 0.05f);
             setVal("tube", 1.0f); setVal("decay", 0.80f); setVal("buzz", 0.0f); setVal("buzzVel", 1.0f);
             setVal("organic", 0.05f); setVal("ambience", 0.50f); setVal("spread", 0.75f); setVal("volume", 0.88f);
             break;
-        case 22: // 23. Orchestra Symphony Marimba 
+        case 22: // 23. Orchestra Symphony Marimba
             setVal("hardness", 0.65f); setVal("overtones", 0.40f); setVal("material", 0.50f); setVal("click", 0.35f);
             setVal("tube", 0.85f); setVal("decay", 0.60f); setVal("buzz", 0.0f); setVal("buzzVel", 1.0f);
             setVal("organic", 0.0f); setVal("ambience", 0.40f); setVal("spread", 0.85f); setVal("volume", 0.85f);
             break;
-        case 23: // 24. Wooden Xylophone Snap 
+        case 23: // 24. Wooden Xylophone Snap
             setVal("hardness", 0.90f); setVal("overtones", 0.85f); setVal("material", 0.60f); setVal("click", 0.80f);
             setVal("tube", 0.30f); setVal("decay", 0.25f); setVal("buzz", 0.0f); setVal("buzzVel", 1.0f);
             setVal("organic", 0.15f); setVal("ambience", 0.20f); setVal("spread", 0.40f); setVal("volume", 0.85f);
             break;
-        case 24: // 25. African Balafon / Kalimba 
+        case 24: // 25. African Balafon / Kalimba
             setVal("hardness", 0.75f); setVal("overtones", 0.60f); setVal("material", 0.75f); setVal("click", 0.65f);
             setVal("tube", 0.65f); setVal("decay", 0.35f); setVal("buzz", 0.30f); setVal("buzzVel", 0.60f);
             setVal("organic", 0.80f); setVal("ambience", 0.15f); setVal("spread", 0.50f); setVal("volume", 0.85f);
             break;
-        case 25: // 26. Indonesian Gamelan Gourd 
+        case 25: // 26. Indonesian Gamelan Gourd
             setVal("hardness", 0.85f); setVal("overtones", 0.90f); setVal("material", 0.95f); setVal("click", 0.85f);
             setVal("tube", 0.80f); setVal("decay", 0.55f); setVal("buzz", 0.0f); setVal("buzzVel", 1.0f);
             setVal("organic", 0.50f); setVal("ambience", 0.40f); setVal("spread", 0.60f); setVal("volume", 0.85f);
@@ -387,42 +431,42 @@ void ExtasisMarimbaAudioProcessor::loadPreset(int presetIndex)
             break;
 
         // --- Experimental, Glass & Hybrid FM (31 - 40) ---
-        case 30: // 31. Glass & Vibra Bars 
+        case 30: // 31. Glass & Vibra Bars
             setVal("hardness", 0.45f); setVal("overtones", 1.0f); setVal("material", 0.50f); setVal("click", 0.20f);
             setVal("tube", 0.90f); setVal("decay", 0.90f); setVal("buzz", 0.0f); setVal("buzzVel", 1.0f);
             setVal("organic", 0.0f); setVal("ambience", 0.60f); setVal("spread", 0.80f); setVal("volume", 0.85f);
             break;
-        case 31: // 32. Ambient Dream Chimes 
+        case 31: // 32. Ambient Dream Chimes
             setVal("hardness", 0.15f); setVal("overtones", 0.20f); setVal("material", 0.55f); setVal("click", 0.0f);
             setVal("tube", 1.0f); setVal("decay", 1.0f); setVal("buzz", 0.0f); setVal("buzzVel", 1.0f);
             setVal("organic", 0.10f); setVal("ambience", 1.0f); setVal("spread", 0.95f); setVal("volume", 0.85f);
             break;
-        case 32: // 33. Cyberpunk Neon Mallet 
+        case 32: // 33. Cyberpunk Neon Mallet
             setVal("hardness", 1.0f); setVal("overtones", 1.0f); setVal("material", 0.35f); setVal("click", 1.0f);
             setVal("tube", 0.50f); setVal("decay", 0.35f); setVal("buzz", 0.10f); setVal("buzzVel", 0.85f);
             setVal("organic", 0.0f); setVal("ambience", 0.25f); setVal("spread", 0.70f); setVal("volume", 0.85f);
             break;
-        case 33: // 34. 12-Bit Lo-Fi Marimbita 
+        case 33: // 34. 12-Bit Lo-Fi Marimbita
             setVal("hardness", 0.50f); setVal("overtones", 0.30f); setVal("material", 0.60f); setVal("click", 0.80f);
             setVal("tube", 0.45f); setVal("decay", 0.15f); setVal("buzz", 0.40f); setVal("buzzVel", 0.30f);
             setVal("organic", 0.85f); setVal("ambience", 0.0f); setVal("spread", 0.0f); setVal("volume", 0.85f);
             break;
-        case 34: // 35. Sub-Bass Thumper Marimba 
+        case 34: // 35. Sub-Bass Thumper Marimba
             setVal("hardness", 0.05f); setVal("overtones", 0.0f); setVal("material", 0.50f); setVal("click", 0.10f);
             setVal("tube", 1.0f); setVal("decay", 0.60f); setVal("buzz", 0.0f); setVal("buzzVel", 1.0f);
             setVal("organic", 0.0f); setVal("ambience", 0.10f); setVal("spread", 0.20f); setVal("volume", 0.92f);
             break;
-        case 35: // 36. Micro-Tuned Village Market 
+        case 35: // 36. Micro-Tuned Village Market
             setVal("hardness", 0.65f); setVal("overtones", 0.45f); setVal("material", 0.75f); setVal("click", 0.55f);
             setVal("tube", 0.75f); setVal("decay", 0.45f); setVal("buzz", 0.90f); setVal("buzzVel", 0.15f);
             setVal("organic", 1.0f); setVal("ambience", 0.25f); setVal("spread", 0.45f); setVal("volume", 0.88f);
             break;
-        case 36: // 37. Space Echo Chamber Bar 
+        case 36: // 37. Space Echo Chamber Bar
             setVal("hardness", 0.55f); setVal("overtones", 0.55f); setVal("material", 0.50f); setVal("click", 0.40f);
             setVal("tube", 0.85f); setVal("decay", 0.80f); setVal("buzz", 0.20f); setVal("buzzVel", 0.85f);
             setVal("organic", 0.25f); setVal("ambience", 0.95f); setVal("spread", 0.85f); setVal("volume", 0.85f);
             break;
-        case 37: // 38. Extasis Anthem Marimba 
+        case 37: // 38. Extasis Anthem Marimba
             setVal("hardness", 0.80f); setVal("overtones", 0.60f); setVal("material", 0.50f); setVal("click", 0.60f);
             setVal("tube", 0.80f); setVal("decay", 0.50f); setVal("buzz", 0.40f); setVal("buzzVel", 0.70f);
             setVal("organic", 0.15f); setVal("ambience", 0.35f); setVal("spread", 0.75f); setVal("volume", 0.88f);
@@ -442,10 +486,10 @@ void ExtasisMarimbaAudioProcessor::loadPreset(int presetIndex)
 
 void ExtasisMarimbaAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-    currentSampleRate = sampleRate;
     synthEngine.prepare(sampleRate, samplesPerBlock);
-    demoSampleCount = 0;
-    checkLicenseState();
+    scopeRingBuffer.fill(0.0f);
+    scopeWritePos.store(0, std::memory_order_relaxed);
+    outputRmsAtomic.store(0.0f, std::memory_order_relaxed);
 }
 
 void ExtasisMarimbaAudioProcessor::releaseResources()
@@ -467,21 +511,10 @@ void ExtasisMarimbaAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer
     juce::ScopedNoDenormals noDenormals;
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
+    const int numSamples = buffer.getNumSamples();
 
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear(i, 0, buffer.getNumSamples());
-
-    // Check License / Demo Timer (10 minutes = 600s)
-    if (!isPluginLicensed)
-    {
-        demoSampleCount += buffer.getNumSamples();
-        if (demoSampleCount > static_cast<int>(currentSampleRate * 600.0))
-        {
-            isExpired = true;
-            buffer.clear();
-            return;
-        }
-    }
+        buffer.clear(i, 0, numSamples);
 
     // 1. Update synth parameters from APVTS
     synthEngine.setParameters(
@@ -499,19 +532,22 @@ void ExtasisMarimbaAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer
         *apvts.getRawParameterValue("volume")
     );
 
-    // 2. Consume Trigger events from GUI
-    while (fifoReadIdx.load() != fifoWriteIdx.load())
+    // 2. Consume Lock-Free Trigger events from GUI
+    int read = fifoReadIdx.load(std::memory_order_relaxed);
+    int write = fifoWriteIdx.load(std::memory_order_acquire);
+    while (read != write)
     {
-        auto ev = triggerFifo[fifoReadIdx.load()];
+        const auto& ev = triggerFifo[static_cast<size_t>(read)];
         if (ev.isNoteOn)
             synthEngine.noteOn(ev.note, ev.vel);
         else
             synthEngine.noteOff(ev.note);
 
-        fifoReadIdx.store((fifoReadIdx.load() + 1) % FIFO_SIZE);
+        read = (read + 1) % FIFO_SIZE;
+        fifoReadIdx.store(read, std::memory_order_release);
     }
 
-    // 3. Process incoming MIDI messages
+    // 3. Process incoming MIDI messages (Notes, Sustain Pedal, Pitch Wheel)
     for (const auto metadata : midiMessages)
     {
         const auto msg = metadata.getMessage();
@@ -523,6 +559,18 @@ void ExtasisMarimbaAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer
         {
             synthEngine.noteOff(msg.getNoteNumber());
         }
+        else if (msg.isSustainPedalOn())
+        {
+            synthEngine.setSustainPedal(true);
+        }
+        else if (msg.isSustainPedalOff())
+        {
+            synthEngine.setSustainPedal(false);
+        }
+        else if (msg.isPitchWheel())
+        {
+            synthEngine.setPitchWheel(msg.getPitchWheelValue());
+        }
         else if (msg.isAllNotesOff() || msg.isAllSoundOff())
         {
             synthEngine.allNotesOff();
@@ -530,12 +578,25 @@ void ExtasisMarimbaAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer
     }
 
     // 4. Render Synth Audio
-    synthEngine.renderAudio(buffer, buffer.getNumSamples());
+    synthEngine.renderAudio(buffer, numSamples);
 
-    // 5. Stream audio to Visualizer
-    if (onAudioBlockProcessed != nullptr && buffer.getNumChannels() > 0)
+    // 5. Lock-Free Push to Visualizer Ring Buffer & RMS Meter
+    if (buffer.getNumChannels() > 0 && numSamples > 0)
     {
-        onAudioBlockProcessed(buffer.getReadPointer(0), buffer.getNumSamples());
+        const float* left = buffer.getReadPointer(0);
+        const float* right = buffer.getNumChannels() > 1 ? buffer.getReadPointer(1) : left;
+        int wp = scopeWritePos.load(std::memory_order_relaxed);
+        float sumSq = 0.0f;
+
+        for (int i = 0; i < numSamples; ++i)
+        {
+            float mono = 0.5f * (left[i] + right[i]);
+            scopeRingBuffer[static_cast<size_t>(wp)] = mono;
+            wp = (wp + 1) % SCOPE_RING_SIZE;
+            sumSq += mono * mono;
+        }
+        scopeWritePos.store(wp, std::memory_order_release);
+        outputRmsAtomic.store(std::sqrt(sumSq / static_cast<float>(numSamples)), std::memory_order_relaxed);
     }
 }
 
@@ -549,18 +610,16 @@ void ExtasisMarimbaAudioProcessor::getStateInformation(juce::MemoryBlock& destDa
 {
     auto state = apvts.copyState();
     std::unique_ptr<juce::XmlElement> xml(state.createXml());
-    copyXmlToBinary(*xml, destData);
+    if (xml != nullptr)
+        copyXmlToBinary(*xml, destData);
 }
 
 void ExtasisMarimbaAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
     std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
-    if (xmlState.get() != nullptr)
+    if (xmlState != nullptr && xmlState->hasTagName(apvts.state.getType()))
     {
-        if (xmlState->hasTagName(apvts.state.getType()))
-        {
-            apvts.replaceState(juce::ValueTree::fromXml(*xmlState));
-        }
+        apvts.replaceState(juce::ValueTree::fromXml(*xmlState));
     }
 }
 

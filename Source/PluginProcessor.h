@@ -1,8 +1,7 @@
 #pragma once
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "DSP/MarimbaSynthEngine.h"
-#include "LicenseManager.h"
-#include <functional>
+#include <array>
 #include <atomic>
 
 class ExtasisMarimbaAudioProcessor : public juce::AudioProcessor
@@ -42,47 +41,45 @@ public:
     bool deleteUserPreset(const juce::String& presetName);
     juce::File getPresetsDirectory() const;
 
+    // Quick Patch Actions
+    void initParameters();
+    void randomizeParameters();
+
     void getStateInformation(juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
 
     juce::AudioProcessorValueTreeState& getAPVTS() { return apvts; }
     MarimbaSynthEngine& getSynthEngine() { return synthEngine; }
 
-    // Audition Trigger (Thread-safe)
+    // Audition Trigger (Lock-Free Thread-Safe)
     void triggerAuditionNote(int noteNumber = 60, float velocity = 1.0f);
     void releaseAuditionNote(int noteNumber = 60);
 
-    // Licensing & Demo Timer
-    bool isLicensed() const { return isPluginLicensed; }
-    void checkLicenseState();
-    bool isDemoExpired() const { return isExpired; }
-    int getRemainingDemoSeconds() const { return std::max(0, 600 - (demoSampleCount / (int)currentSampleRate)); }
-
-    // Real-time audio stream callback for visualizer
-    std::function<void(const float*, int)> onAudioBlockProcessed;
+    // Lock-Free Real-Time Visualizer Data (Audio Thread -> UI Thread)
+    static constexpr int SCOPE_RING_SIZE = 2048;
+    void copyScopeSamples(float* dest, int numSamples) const;
+    float getOutputRms() const { return outputRmsAtomic.load(std::memory_order_relaxed); }
+    int getActiveVoiceCount() const { return synthEngine.getActiveVoiceCount(); }
 
 private:
-    uint64_t samplesProcessed = 0;
-
     juce::AudioProcessorValueTreeState apvts;
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
     MarimbaSynthEngine synthEngine;
 
-    // Audition Note queue
+    // Lock-Free Audition Note FIFO
     struct TriggerEvent { int note; float vel; bool isNoteOn; };
-    static constexpr int FIFO_SIZE = 16;
+    static constexpr int FIFO_SIZE = 32;
     std::array<TriggerEvent, FIFO_SIZE> triggerFifo;
     std::atomic<int> fifoWriteIdx { 0 };
     std::atomic<int> fifoReadIdx { 0 };
 
-    int currentProgramIndex = 0;
-    double currentSampleRate = 44100.0;
+    // Lock-Free Scope Ring Buffer (Audio Thread writes, UI Thread reads)
+    std::array<float, SCOPE_RING_SIZE> scopeRingBuffer {};
+    std::atomic<int> scopeWritePos { 0 };
+    std::atomic<float> outputRmsAtomic { 0.0f };
 
-    // License tracking
-    bool isPluginLicensed = false;
-    bool isExpired = false;
-    int demoSampleCount = 0;
+    int currentProgramIndex = 0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ExtasisMarimbaAudioProcessor)
 };

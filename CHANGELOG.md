@@ -1,34 +1,30 @@
 # 📜 Changelog — Extasis Marimba
 
-# 📜 Changelog — Extasis Marimba
+## [4.0.0] - 2026-11-23 (Free & Open-Source Milestone Release)
+### Open Source & Licensing
+* **100% Free & Open Source (GPLv3):** Removed all DRM, offline serial activation, activation overlay, and 10-minute demo time restrictions. Added GNU GPLv3 `LICENSE`.
+* **Repository Cleanup:** Removed unused legacy DSP/GUI headers and license generation scripts for a clean, contributor-friendly C++17 codebase.
 
-## [3.1.0] - 2026-09-04 (Major Final Release)
+### DSP & Audio Engine Improvements
+* **100% Lock-Free Real-Time Audio Thread:** Replaced `rand()` and `juce::Random` with fast per-voice `XorShift32` PRNGs, and replaced the mutex-locked oscilloscope callback with a zero-allocation lock-free SPSC ring buffer (`2048` samples).
+* **Equal-Power Key-Tracked Panning:** Upgraded linear panning to proper equal-power (`cos`/`sin`) stereo panning.
+* **Decorrelated Stereo Ambience:** Replaced mono-summed floor delay with dual-channel asymmetric stereo courtyard reflections (L: 15/33 ms, R: 19/41 ms + cross-feed).
+* **Smart Voice Stealing:** Replaced fixed voice-0 stealing with quietest-voice stealing for smoother 16-voice polyphony.
+* **Nyquist & High Sample-Rate Safety:** Added frequency clamping on biquad filters and upper FM modulators, dynamic delay buffer sizing up to 192 kHz, and master volume smoothing.
+* **MIDI Expressiveness:** Added full Sustain Pedal (CC 64) and Pitch Bend (±2 semitones) support, and increased `getTailLengthSeconds()` to `3.5s`.
+
+### GUI, UX & Bug Fixes
+* **Fixed Preset Index Bug:** Fixed user preset loading offset from `30` to `40` so factory presets 31–40 never collide with saved user presets.
+* **Restored `SAVE` Button & Added `INIT` / `RND`:** Restored the visible `SAVE` button in the preset bar (with crash-safe modal callback) and added header `INIT` (clean concert marimba) and `RND` (musical patch randomizer) buttons plus a clickable `GPLv3 // FREE` badge.
+* **Symmetrical `680×420` Layout & Knob UX:** Balanced all three modular sections (`208px` each), added hover highlights and **double-click to reset** on all 12 knobs, and added a live `PAD: C4` pitch badge to the Logo Trigger Pad.
+* **Live LCD Telemetry:** Upgraded the 5 modal bars (`f0`, `4f`, `10f`, `TUBE`, `BUZZ`) to react dynamically to real-time RMS audio energy and synth parameters, and added a live `VOICES X/16` counter.
+* **Build & Installer Fixes:** Fixed macOS post-build installation paths and cross-platform installer scripts to consistently use `Extasis Marimba` (with space).
+
+## [3.1.0] - 2026-09-04
 ### DSP & Physics Overhaul
-* **True 1:4:10 Wood Carving Engine:** Completely overhauled the FM mode ratios to perfectly match physical marimba tuning, ditching the uniform dissonant bar model.
-* **Acoustic Key-Tracked Panning:** Implemented physical spatialization where low notes resonate on the left and high notes on the right, scaled by the `SPREAD` knob.
-* **Aggressive Key-Tracked Decay:** Physical modeling enhancement where high notes decay instantly ("tock") while low notes ring out indefinitely.
-* **Saturator:** Added a `std::tanh` soft-clipper at the master output for 1-3dB of warm analog acoustic glue.
-
-### GUI & User Experience
-* **Expanded Interface (660x410):** Significantly increased the plugin dimensions, providing luxurious margins around all modules and knobs.
-* **Enhanced Preset Menu:** Widened the preset combobox so long preset names no longer cut off, and restored the dedicated `SAVE` button.
-* **Unobtrusive Licensing:** Removed the "BUY LICENSE" button from the main header. The Gumroad link now strictly appears inside the Activation Overlay.
-* **Developer Credit:** Added a sleek, discreet `"coded by @laurorobles"` watermark integrated into the main header.
-* **DAW Naming Fix:** Updated CMake metadata so the plugin correctly shows up as `Extasis Marimba` (with a space) in Ableton Live and Logic.
-
-### Presets
-* **Expanded Factory Banks:** Increased the factory library from 30 to 40 categorized presets, meticulously mapped to the 12 new physical parameters (covering Traditional, Latin Club, Concert, and Experimental Hybrid FM).
+* **True 1:4:10 Wood Carving Engine:** Overhauled FM mode ratios to match hand-carved physical marimba tuning.
+* **Acoustic Key-Tracked Panning & Decay:** Low notes pan left and ring; high notes pan right and decay rapidly.
+* **Expanded Factory Banks:** Increased factory library from 30 to 40 categorized presets.
 
 ## [1.0.0] - 2026-08-22 (Initial Release)
-### Added
-* 64-bit Modal Physical Modeling & FM Marimba synthesis engine.
-* *La Cachimba* non-linear membrane buzz modeling with velocity sensitivity.
-* Rubber mallet noise strike bandpass filter (2.5 kHz - 5.5 kHz).
-* Acoustic resonator tube cavity model with micro-beating ($\pm 3.5\text{--}6\text{ Hz}$).
-* *Marimba de Pueblo* deterministic per-key micro-imperfection engine.
-* 30 professionally designed factory presets.
-* User preset saving & loading system (`.empreset`).
-* High-definition multi-mode OLED oscilloscope & modal resonator visualizer.
-* Large tactile Extasis Logo Trigger Pad with drag-to-tune pitch auditioning ($\pm 24\text{ st}$).
-* Standard Extasis Records offline cryptographic licensing system with in-app activation modal.
-* Native Standalone, VST3, and Audio Unit support for macOS and Windows.
+* Initial Physical-FM Marimba synthesis engine, *La Cachimba* membrane buzz, *Marimba de Pueblo* drift, 30 presets, OLED oscilloscope, and Logo Trigger Pad.

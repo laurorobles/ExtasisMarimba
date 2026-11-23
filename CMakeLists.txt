@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(ExtasisMarimba VERSION 3.0.1 LANGUAGES C CXX)
+project(ExtasisMarimba VERSION 4.0.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -23,6 +23,8 @@ juce_add_binary_data(ExtasisMarimbaData
 
 juce_add_plugin(ExtasisMarimba
     COMPANY_NAME "Extasis Records"
+    COMPANY_EMAIL "laurorobles@gmail.com"
+    COMPANY_WEBSITE "https://github.com/laurorobles/ExtasisMarimba"
     BUNDLE_ID "com.laurorobles.ExtasisMarimba"
     PLUGIN_MANUFACTURER_CODE Exta
     PLUGIN_CODE Emrb
@@ -44,11 +46,6 @@ target_sources(ExtasisMarimba PRIVATE
     Source/PluginProcessor.h
     Source/PluginEditor.cpp
     Source/PluginEditor.h
-    Source/DSP/MalletExciter.h
-    Source/DSP/ModalBarResonator.h
-    Source/DSP/SEMFilter.h
-    Source/DSP/PercussiveEnvelope.h
-    Source/DSP/StereoBodyProcessor.h
     Source/DSP/MarimbaSynthEngine.h
     Source/GUI/MarimbaLookAndFeel.h
     Source/GUI/MarimbaLookAndFeel.cpp
@@ -73,35 +70,36 @@ target_link_libraries(ExtasisMarimba PRIVATE
     juce::juce_gui_extra
 )
 
-# Custom post-build step to guarantee installation and app icon
+# Custom post-build step to guarantee installation and app icon on macOS
 if (APPLE)
-    add_custom_command(TARGET ExtasisMarimba_Standalone POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_CURRENT_SOURCE_DIR}/assets/icon.icns"
-            "$<TARGET_BUNDLE_DIR:ExtasisMarimba_Standalone>/Contents/Resources/Icon.icns"
-        COMMENT "Copying icon.icns to Standalone app bundle"
-    )
-endif()
+    if (TARGET ExtasisMarimba_Standalone)
+        add_custom_command(TARGET ExtasisMarimba_Standalone POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${CMAKE_CURRENT_SOURCE_DIR}/assets/icon.icns"
+                "$<TARGET_BUNDLE_DIR:ExtasisMarimba_Standalone>/Contents/Resources/Icon.icns"
+            COMMENT "Copying icon.icns to Standalone app bundle"
+        )
+    endif()
 
-# Custom post-build step to guarantee installation to user plug-in directory
-if (APPLE)
     if (TARGET ExtasisMarimba_VST3)
         add_custom_command(TARGET ExtasisMarimba_VST3 POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E make_directory "$ENV{HOME}/Library/Audio/Plug-Ins/VST3"
+            COMMAND ${CMAKE_COMMAND} -E rm -rf "$ENV{HOME}/Library/Audio/Plug-Ins/VST3/ExtasisMarimba.vst3"
             COMMAND ${CMAKE_COMMAND} -E copy_directory
                 "$<TARGET_BUNDLE_DIR:ExtasisMarimba_VST3>"
-                "$ENV{HOME}/Library/Audio/Plug-Ins/VST3/ExtasisMarimba.vst3"
-            COMMENT "Installing VST3 to ~/Library/Audio/Plug-Ins/VST3/"
+                "$ENV{HOME}/Library/Audio/Plug-Ins/VST3/Extasis Marimba.vst3"
+            COMMENT "Installing VST3 to ~/Library/Audio/Plug-Ins/VST3/Extasis Marimba.vst3"
         )
     endif()
 
     if (TARGET ExtasisMarimba_AU)
         add_custom_command(TARGET ExtasisMarimba_AU POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E make_directory "$ENV{HOME}/Library/Audio/Plug-Ins/Components"
+            COMMAND ${CMAKE_COMMAND} -E rm -rf "$ENV{HOME}/Library/Audio/Plug-Ins/Components/ExtasisMarimba.component"
             COMMAND ${CMAKE_COMMAND} -E copy_directory
                 "$<TARGET_BUNDLE_DIR:ExtasisMarimba_AU>"
-                "$ENV{HOME}/Library/Audio/Plug-Ins/Components/ExtasisMarimba.component"
-            COMMENT "Installing AU to ~/Library/Audio/Plug-Ins/Components/"
+                "$ENV{HOME}/Library/Audio/Plug-Ins/Components/Extasis Marimba.component"
+            COMMENT "Installing AU to ~/Library/Audio/Plug-Ins/Components/Extasis Marimba.component"
         )
     endif()
 endif()

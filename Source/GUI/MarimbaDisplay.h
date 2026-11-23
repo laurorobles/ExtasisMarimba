@@ -1,6 +1,7 @@
 #pragma once
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <vector>
+#include <functional>
 
 namespace ExtasisGUI
 {
@@ -16,24 +17,36 @@ public:
 
     void setPatchName(const juce::String& name);
     void setParameterReadout(const juce::String& paramName, const juce::String& valueText);
-    void pushAudioSamples(const float* samples, int numSamples);
+    void setModalParams(float hardness, float overtones, float tube, float buzz);
     void triggerStrikeAnimation(float hardness, float decay);
 
+    // UI-Thread pull callbacks (reads lock-free data from AudioProcessor)
+    std::function<void(float* dest, int numSamples)> onPullScopeSamples;
+    std::function<float()> onPullOutputRms;
+    std::function<int()> onPullActiveVoices;
+
 private:
-    juce::String currentPatchName = "01: MicroFreak Marimbita";
-    juce::String currentParamName = "MODAL SYNTHESIS ACTIVE";
-    juce::String currentValueText = "MARIMBA ENGINE READY";
+    juce::String currentPatchName = "01. Chiapas Cachimba Marimba";
+    juce::String currentParamName = "PHYSICAL-FM ENGINE";
+    juce::String currentValueText = "1:4:10 TUNED BAR READY";
     int readoutTimeoutCounter = 0;
 
     float animDecay = 0.0f;
-    float animHardness = 0.5f;
     float animPhase = 0.0f;
+    float smoothedRms = 0.0f;
+    int activeVoices = 0;
 
-    // Real-time oscilloscope buffer (Like TX81Z / ExtasisDonk)
+    // Live synth parameter weights for modal resonator meters
+    float paramHardness = 0.65f;
+    float paramOvertones = 0.40f;
+    float paramTube = 0.85f;
+    float paramBuzz = 0.60f;
+
+    // Real-time oscilloscope buffers (UI thread only — zero locks!)
     static constexpr int scopeBufferSize = 256;
+    static constexpr int pullBufferSize = 512;
+    std::vector<float> pullBuffer;
     std::vector<float> scopeBuffer;
-    std::vector<float> incomingFifo;
-    juce::CriticalSection fifoLock;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MarimbaDisplay)
 };
